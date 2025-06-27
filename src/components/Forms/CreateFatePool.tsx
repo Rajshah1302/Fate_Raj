@@ -1,6 +1,6 @@
 "use client";
 
-import "dotenv/config"
+import "dotenv/config";
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,6 @@ import { InfoIcon, Coins, Wallet, Percent } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Transaction } from "@mysten/sui/transactions";
 import { useWallet } from "@suiet/wallet-kit";
-
 
 export default function CreateFatePoolForm() {
   const { account, signAndExecuteTransaction } = useWallet();
@@ -82,6 +81,9 @@ export default function CreateFatePoolForm() {
       const vault_creator_fee = parseInt(formData.creatorStakeFee || "0");
       const treasury_fee = parseInt(formData.unstakeFee || "0");
 
+      // const priceIdHex =
+        // "23d7315113f5b1d3ba7a83604c44b94d79f4fd69af77f804fc7f920a6dc65744";
+
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_prediction_pool`,
         arguments: [
@@ -89,23 +91,26 @@ export default function CreateFatePoolForm() {
           tx.pure.u64(vault_fee),
           tx.pure.u64(vault_creator_fee),
           tx.pure.u64(treasury_fee),
+          // tx.pure.string("Bull Token"), // bull_name
+          // tx.pure.string("BULL"), // bull_symbol
+          // tx.pure.string("Bear Token"), // bear_name
+          // tx.pure.string("BEAR"), // bear_symbol
+          // tx.pure.string(priceIdHex), // asset_id_hex as string
         ],
       });
-      tx.setGasBudget(11_000_000);
+      tx.setGasBudget(20000000);
       const result = await signAndExecuteTransaction({
         transaction: tx,
       });
-      router.push("/explorePools")
+      router.push("/explorePools");
       console.log("Transaction result:", result);
       alert("Prediction Pool created successfully!");
-
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Transaction error:", err);
       alert(`Transaction failed: ${err.message || err}`);
     }
   };
-
 
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4">
@@ -364,7 +369,8 @@ export default function CreateFatePoolForm() {
                       </TooltipTrigger>
                       <TooltipContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
                         <p className="w-64 text-sm">
-                          The address that will receive the creator&apos;s portion of vault fees
+                          The address that will receive the creator&apos;s
+                          portion of vault fees
                         </p>
                       </TooltipContent>
                     </Tooltip>
