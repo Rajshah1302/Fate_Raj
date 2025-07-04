@@ -5,7 +5,6 @@ import { Search, Plus } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { SuiClient } from "@mysten/sui/client";
-import { useWallet } from "@suiet/wallet-kit";
 import { useRouter } from "next/navigation";
 
 interface Token {
@@ -35,6 +34,17 @@ interface Pool {
   participants?: number;
 }
 
+interface PoolCreatedEvent {
+  pool_id: string;
+  bull_token_id: string;
+  bear_token_id: string;
+  vault_creator: string;
+  bull_token_name: string;
+  bull_token_symbol: string;
+  bear_token_name: string;
+  bear_token_symbol: string;
+}
+
 const calculateTokenValue = (token: Partial<Token>): number => {
   return token.supply && token.supply > 0 ? (token.asset_balance || 0) / token.supply : 1;
 };
@@ -42,7 +52,6 @@ const calculateTokenValue = (token: Partial<Token>): number => {
 const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
 
 const ExploreFatePools = () => {
-  const { account } = useWallet();
   const [pools, setPools] = useState<Pool[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,7 +62,7 @@ const ExploreFatePools = () => {
   });
 
   useEffect(() => {
-    const fetchTransactions = async () => {
+    const fetchPools = async () => {
       if (!PACKAGE_ID) {
         console.warn("Missing NEXT_PUBLIC_PACKAGE_ID in env");
         setError("Missing package configuration");
@@ -62,133 +71,147 @@ const ExploreFatePools = () => {
       }
 
       try {
-        const PREDICTION_POOL_TYPE = `${PACKAGE_ID}::prediction_pool::PredictionPool`;
+        // Method 1: Query events for pool creation
+        await fetchPoolsFromEvents();
+      } catch (eventError) {
+        console.warn("Event-based fetching failed, trying direct object query:", eventError);
+        // Method 2: Fallback to direct object query
+        await fetchPoolsFromObjects();
+      }
+    };
 
-        // Step 1: Get recent transaction digests
-        const txn = await client.queryTransactionBlocks({
-          filter: { MoveFunction: { package: PACKAGE_ID } },
-          options: { showInput: true },
-          limit: 50,
+    const fetchPoolsFromEvents = async () => {
+      const MODULE_NAME = "prediction_pool";
+      const EVENT_TYPE = "PoolCreated";
+      
+      // Query events
+      const events = await client.queryEvents({
+        query: {
+          MoveEventType: `${PACKAGE_ID}::${MODULE_NAME}::${EVENT_TYPE}`
+        },
+        limit: 50,
+        order: "descending"
+      });
+
+      const poolsFromEvents: Pool[] = [];
+
+      for (const event of events.data) {
+        try {
+          const eventData = event.parsedJson as PoolCreatedEvent;
+          
+          // Verify pool still exists and get token data
+          const [poolExists, bullTokenData, bearTokenData] = await Promise.all([
+            client.getObject({
+              id: eventData.pool_id,
+              options: { showContent: false }
+            }).then(res => res.data?.objectId != null).catch(() => false),
+            
+            client.getObject({
+              id: eventData.bull_token_id,
+              options: { showContent: true }
+            }),
+            
+            client.getObject({
+              id: eventData.bear_token_id,
+              options: { showContent: true }
+            })
+          ]);
+
+          if (!poolExists || !bullTokenData.data?.content || !bearTokenData.data?.content) {
+            console.warn(`Skipping invalid pool ${eventData.pool_id}`);
+            continue;
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parseTokenData = (tokenData: any): Token | null => {
+            try {
+              if (!tokenData.content || !('fields' in tokenData.content)) {
+                return null;
+              }
+              
+              const fields = tokenData.content.fields;
+              return {
+                id: fields.id?.id || tokenData.objectId,
+                name: fields.name || "",
+                symbol: fields.symbol || "",
+                balance: parseInt(fields.supply || "0"),
+                price: calculateTokenValue({
+                  supply: parseInt(fields.supply || "0"),
+                  asset_balance: parseInt(fields.asset_balance || "0"),
+                }),
+                vault_creator: fields.vault_creator || "",
+                vault_fee: parseInt(fields.vault_fee || "0"),
+                vault_creator_fee: parseInt(fields.vault_creator_fee || "0"),
+                treasury_fee: parseInt(fields.treasury_fee || "0"),
+                asset_balance: parseInt(fields.asset_balance || "0"),
+                supply: parseInt(fields.supply || "0"),
+                prediction_pool: fields.prediction_pool || "",
+                other_token: fields.other_token || "",
+              };
+            } catch (error) {
+              console.error("Error parsing token data:", error);
+              return null;
+            }
+          };
+
+          const bullToken = parseTokenData(bullTokenData.data);
+          const bearToken = parseTokenData(bearTokenData.data);
+
+          if (!bullToken || !bearToken) {
+            console.warn(`Invalid token data for pool ${eventData.pool_id}`);
+            continue;
+          }
+
+          // Calculate percentages
+          const totalValue = bullToken.price * bullToken.balance + bearToken.price * bearToken.balance;
+          const bullPercentage = totalValue > 0
+            ? (bullToken.price * bullToken.balance) / totalValue * 100
+            : 50;
+
+          poolsFromEvents.push({
+            id: eventData.pool_id,
+            name: `${bullToken.symbol}/${bearToken.symbol} Pool`,
+            bullPercentage,
+            bearPercentage: 100 - bullPercentage,
+            bullToken,
+            bearToken,
+          });
+
+        } catch (error) {
+          console.error(`Error processing event for pool:`, error);
+        }
+      }
+
+      setPools(poolsFromEvents);
+      setLoading(false);
+    };
+
+    const fetchPoolsFromObjects = async () => {
+      try {
+        const PREDICTION_POOL_TYPE = `${PACKAGE_ID}::prediction_pool::PredictionPool`;
+        
+         await client.getOwnedObjects({
+          owner: "0x0", 
+          filter: {
+            StructType: PREDICTION_POOL_TYPE
+          },
+          options: {
+            showContent: true,
+            showType: true
+          }
         });
 
-        // Step 2: Get detailed transactions
-        const detailedTxns = await Promise.all(
-          txn.data.map((tx) =>
-            client.getTransactionBlock({
-              digest: tx.digest,
-              options: { showObjectChanges: true },
-            })
-          )
-        );
-
-        const foundPools: Pool[] = [];
-
-        // Step 3: Process transactions to find pools
-        for (const tx of detailedTxns) {
-          if (!tx.objectChanges) continue;
-
-          for (const change of tx.objectChanges) {
-            if (
-              change.type === "created" &&
-              "objectType" in change &&
-              change.objectType === PREDICTION_POOL_TYPE
-            ) {
-              foundPools.push({
-                id: change.objectId,
-                name: `Prediction Pool ${foundPools.length + 1}`,
-                bullPercentage: 0,
-                bearPercentage: 0,
-              });
-            }
-          }
-        }
-
-        // Step 4: Enrich pool data with token details
-        const enrichedPools: Pool[] = await Promise.all(
-          foundPools.map(async (pool) => {
-            try {
-              const response = await client.getObject({
-                id: pool.id,
-                options: { showContent: true },
-              });
-
-              if (!response.data?.content || !('fields' in response.data.content)) {
-                console.warn(`No content for pool ${pool.id}`);
-                return pool;
-              }
-
-              const poolFields = (response.data.content as any).fields;
-
-              // Fetch token details
-              const [bullResponse, bearResponse] = await Promise.all([
-                client.getObject({
-                  id: poolFields.bull_token_id,
-                  options: { showContent: true },
-                }),
-                client.getObject({
-                  id: poolFields.bear_token_id,
-                  options: { showContent: true },
-                }),
-              ]);
-
-              if (!bullResponse.data?.content || !bearResponse.data?.content) {
-                console.warn(`Missing token data for pool ${pool.id}`);
-                return pool;
-              }
-
-              const parseTokenData = (tokenData: any): Token => ({
-                id: tokenData.fields.id.id,
-                name: tokenData.fields.name,
-                symbol: tokenData.fields.symbol,
-                balance: parseInt(tokenData.fields.supply),
-                price: calculateTokenValue({
-                  supply: parseInt(tokenData.fields.supply),
-                  asset_balance: parseInt(tokenData.fields.asset_balance),
-                }),
-                vault_creator: tokenData.fields.vault_creator,
-                vault_fee: parseInt(tokenData.fields.vault_fee),
-                vault_creator_fee: parseInt(tokenData.fields.vault_creator_fee),
-                treasury_fee: parseInt(tokenData.fields.treasury_fee),
-                asset_balance: parseInt(tokenData.fields.asset_balance),
-                supply: parseInt(tokenData.fields.supply),
-                prediction_pool: tokenData.fields.prediction_pool,
-                other_token: tokenData.fields.other_token,
-              });
-
-              const bullToken = parseTokenData(bullResponse.data.content);
-              const bearToken = parseTokenData(bearResponse.data.content);
-
-              // Calculate percentages
-              const totalValue = bullToken.price * bullToken.balance + bearToken.price * bearToken.balance;
-              const bullPercentage = totalValue > 0
-                ? (bullToken.price * bullToken.balance) / totalValue * 100
-                : 50;
-
-              return {
-                ...pool,
-                bullPercentage,
-                bearPercentage: 100 - bullPercentage,
-                bullToken,
-                bearToken,
-                name: `${bullToken.symbol}/${bearToken.symbol} Pool`,
-              };
-            } catch (err) {
-              console.error(`Error processing pool ${pool.id}:`, err);
-              return pool;
-            }
-          })
-        );
-
-        setPools(enrichedPools);
-      } catch (err) {
-        console.error("Error fetching transactions:", err);
-        setError("Failed to fetch prediction pools.");
-      } finally {
+        console.warn("Direct object query may not work for shared objects");
+        setPools([]);
+        setLoading(false);
+      } catch (error) {
+        console.error("Direct object query failed:", error);
+        setError("Unable to fetch pools. Please try again later.");
         setLoading(false);
       }
     };
 
-    fetchTransactions();
+    fetchPools();
   }, []);
 
   const filteredPools = pools.filter((pool) =>
@@ -281,7 +304,7 @@ const ExploreFatePools = () => {
             ) : (
               <div className="col-span-3 text-center py-12">
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                  {pools.length === 0 ? "No pools found" : "No pools matching your search"}
+                  {pools.length === 0 ? "No pools found. Create the first one!" : "No pools matching your search"}
                 </p>
               </div>
             )}
