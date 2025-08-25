@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from "react";
 import { SuiClient } from "@mysten/sui/client";
@@ -18,6 +19,8 @@ interface Token {
 }
 
 export interface Pool {
+  pair_id: string;
+  pairId: string;
   asset_address: string;
   bear_reserve: string;
   bear_token: Token;
@@ -271,7 +274,6 @@ export const usePool = (
         throw new Error("No pool content found in response");
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const poolFields = (response.data.content as any).fields;
       const poolData = poolFields as Pool;
       setPool(poolData);

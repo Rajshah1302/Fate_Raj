@@ -17,18 +17,21 @@ export function useBuyTokens() {
   const { updatePythPrice } = useUpdatePythPrice();
 
   const buyTokens = useCallback(
-    async ({ amount, isBull, vaultId, assetId }: BuyTokensParams) => {
+    async ({ amount, isBull, vaultId }: BuyTokensParams) => {
       if (!amount || amount <= 0 || !account?.address) {
         toast.error("Please enter a valid amount and connect your wallet");
         return;
       }
 
       const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const CLOCK_ID =
-        "0x0000000000000000000000000000000000000000000000000000000000000006";
-
+      const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+      
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
+        return;
+      }
+      if (!SUPRA_ORACLE_HOLDER) {
+        toast.error("Missing SUPRA_ORACLE_HOLDER in environment variables");
         return;
       }
 
@@ -61,21 +64,16 @@ export function useBuyTokens() {
             }, Available: ${totalBalance.toString()}`
           );
         }
-
-        const { suiPriceObjectId } = await updatePythPrice([assetId]);
-
         const tx = new Transaction();
         tx.moveCall({
           target: `${PACKAGE_ID}::prediction_pool::purchase_token`,
           arguments: [
-            tx.object(vaultId),
-            tx.pure.bool(isBull),
-            tx.object(suiPriceObjectId),
-            tx.object(CLOCK_ID),
+            tx.object(vaultId), 
+            tx.pure.bool(isBull), 
+            tx.object(SUPRA_ORACLE_HOLDER as string), 
             tx.splitCoins(tx.gas, [tx.pure.u64(amountInMist)]),
           ],
         });
-
         tx.setGasBudget(100_000_000);
 
         console.log("Executing purchase transaction...");
@@ -89,9 +87,7 @@ export function useBuyTokens() {
         console.error("Buy token failed:", error);
 
         toast.error(
-          `${isBull ? "Bull" : "Bear"} token purchase failed: ${
-            error.message
-          }`
+          `${isBull ? "Bull" : "Bear"} token purchase failed: ${error.message}`
         );
       }
     },

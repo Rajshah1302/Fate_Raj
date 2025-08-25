@@ -1,10 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import {
-  SuiPythClient,
-  SuiPriceServiceConnection,
-} from "@pythnetwork/pyth-sui-js";
-import { SuiClient } from "@mysten/sui/client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +36,7 @@ export default function CreateFatePoolForm() {
   const [formData, setFormData] = useState<FormData>({
     poolName: "",
     poolDescription: "",
-    assetId: "",
+    pairId: "",
     assetAddress: "",
     bullCoinName: "",
     bullCoinSymbol: "",
@@ -50,7 +45,8 @@ export default function CreateFatePoolForm() {
     poolCreatorFee: "",
     poolCreatorAddress: "",
     protocolFee: "",
-    stableOrderFee: "",
+    mintFee: "",
+    burnFee: "",
   });
 
   const updateFormData = (updates: Partial<FormData>) => {
@@ -95,8 +91,11 @@ export default function CreateFatePoolForm() {
         if (!formData.protocolFee.trim()) {
           newErrors.protocolFee = "Creator unstake fee is required";
         }
-        if (!formData.stableOrderFee.trim()) {
-          newErrors.stableOrderFee = "Stake fee is required";
+        if (!formData.mintFee.trim()) {
+          newErrors.mintFee = "Mint fee is required";
+        }
+        if (!formData.burnFee.trim()) {
+          newErrors.burnFee = "Burn fee is required";
         }
         break;
       default:
@@ -129,129 +128,89 @@ export default function CreateFatePoolForm() {
     }
 
     const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-    const PYTH_STATE_ID = process.env.NEXT_PUBLIC_PYTH_STATE_ID;
-    const CLOCK_ID =
-      "0x0000000000000000000000000000000000000000000000000000000000000006";
-    const WORMHOLE_STATE_ID =
-      "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790";
+    const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
 
-    if (!PACKAGE_ID || !PYTH_STATE_ID) {
+    if (!PACKAGE_ID || !SUPRA_ORACLE_HOLDER) {
       toast.error(
-        "Missing environment variables for PACKAGE_ID or PYTH_STATE_ID"
+        "Missing environment variables: NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_SUPRA_ORACLE_HOLDER"
       );
       setIsSubmitting(false);
       return;
     }
 
     try {
-      const poolName = formData.poolName || "Default Pool";
-      const poolDescription = formData.poolDescription || "A prediction pool";
-      const assetAddress =
-        formData.assetAddress || "0x0000000000000000000000000000000000000000";
-      const protocolFee = parseInt(formData.protocolFee || "100");
-      const stableOrderFee = parseInt(formData.stableOrderFee || "50");
-      const poolCreatorFee = parseInt(formData.poolCreatorFee || "50");
-      const poolCreator = formData.poolCreatorAddress || account.address;
-      const bullTokenName = `${poolName} Bull`;
-      const bullTokenSymbol = "BULL";
-      const bearTokenName = `${poolName} Bear`;
-      const bearTokenSymbol = "BEAR";
-
-      const connection = new SuiPriceServiceConnection(
-        "https://hermes-beta.pyth.network",
-        { priceFeedRequestConfig: { binary: true } }
-      );
-
-      const priceIDs: string[] = formData?.assetId
-        ? Array.isArray(formData.assetId)
-          ? formData.assetId
-          : [formData.assetId]
-        : [
-            "0x50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266",
-          ];
-
-      const priceUpdateData = await connection.getPriceFeedsUpdateData(
-        priceIDs
-      );
-
-      const suiClient = new SuiClient({
-        url: "https://fullnode.testnet.sui.io:443",
-      });
-      const pythClient = new SuiPythClient(
-        suiClient,
-        PYTH_STATE_ID,
-        WORMHOLE_STATE_ID
-      );
-
-      const updateTx = new Transaction();
-      const priceInfoObjectIds = await pythClient.updatePriceFeeds(
-        updateTx,
-        priceUpdateData,
-        priceIDs
-      );
-
-      const suiPriceObjectId = priceInfoObjectIds[0];
-      if (!suiPriceObjectId) {
-        throw new Error("Failed to get price object ID from Pyth update");
+      const poolName = formData.poolName?.trim() || "Default Pool";
+      const poolDescription =
+        formData.poolDescription?.trim() || "A prediction pool";
+      const pairId = Number(formData.pairId ?? 18);
+      if (!Number.isFinite(pairId) || pairId < 0 || pairId > 0xffffffff) {
+        toast.error("Invalid pair id. Provide a numeric pairId (u32).");
+        setIsSubmitting(false);
+        return;
       }
 
-      updateTx.setGasBudget(50_000_000);
-      const updateResult = await signAndExecuteTransaction({
-        transaction: updateTx,
-      });
-      console.log("Price update result:", updateResult);
+      const assetAddress =
+        formData.assetAddress || "0x0000000000000000000000000000000000000000";
+
+      const protocolFee = BigInt(Number(formData.protocolFee ?? 100));
+      const mintFee = BigInt(Number(formData.mintFee ?? 0)); 
+      const burnFee = BigInt(Number(formData.burnFee ?? 0)); 
+      const poolCreatorFee = BigInt(Number(formData.poolCreatorFee ?? 50));
+
+      const poolCreator = formData.poolCreatorAddress || account.address;
+
+      const bullTokenName = `${poolName} Bull`;
+      const bullTokenSymbol = formData.bullCoinSymbol ?? "BULL";
+      const bearTokenName = `${poolName} Bear`;
+      const bearTokenSymbol = formData.bearCoinSymbol ?? "BEAR";
+
+      const strToU8Vec = (s: string) => Array.from(Buffer.from(s, "utf8"));
 
       const tx = new Transaction();
-      const assetIdBytes = Array.from(Buffer.from(priceIDs[0].slice(2), "hex"));
 
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
-          tx.pure.vector("u8", Array.from(Buffer.from(poolName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(poolDescription, "utf8"))
-          ),
-          tx.pure.vector("u8", assetIdBytes),
+          tx.pure.vector("u8", strToU8Vec(poolName)),
+          tx.pure.vector("u8", strToU8Vec(poolDescription)),
+          tx.pure.u32(pairId),
           tx.pure.address(assetAddress),
           tx.pure.u64(protocolFee),
-          tx.pure.u64(stableOrderFee),
+          tx.pure.u64(mintFee),
+          tx.pure.u64(burnFee),
           tx.pure.u64(poolCreatorFee),
           tx.pure.address(poolCreator),
-          tx.pure.vector("u8", Array.from(Buffer.from(bullTokenName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(bullTokenSymbol, "utf8"))
-          ),
-          tx.pure.vector("u8", Array.from(Buffer.from(bearTokenName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(bearTokenSymbol, "utf8"))
-          ),
-          tx.object(suiPriceObjectId),
-          tx.object(CLOCK_ID),
+          tx.pure.vector("u8", strToU8Vec(bullTokenName)),
+          tx.pure.vector("u8", strToU8Vec(bullTokenSymbol)),
+          tx.pure.vector("u8", strToU8Vec(bearTokenName)),
+          tx.pure.vector("u8", strToU8Vec(bearTokenSymbol)),
+          tx.object(SUPRA_ORACLE_HOLDER),
         ],
       });
 
       tx.setGasBudget(100_000_000);
+
+      console.log("Submitting create_pool tx...");
       const result = await signAndExecuteTransaction({ transaction: tx });
 
       console.log("Pool created successfully:", result);
 
-      const resultObj =
-        typeof result === "string" ? JSON.parse(result) : result;
-
-      const poolId = resultObj.effects?.created?.[0]?.reference?.objectId;
-      if (poolId) {
-        console.log("New pool ID:", poolId);
+      try {
+        const resultObj =
+          typeof result === "string" ? JSON.parse(result) : result;
+        const poolId = resultObj?.effects?.created?.[0]?.reference?.objectId;
+        if (poolId) {
+          console.log("New pool ID:", poolId);
+        }
+      } catch (e) {
+        console.debug("Could not parse result object for pool id", e);
       }
 
       toast.success("Prediction Pool created successfully!");
       router.push("/predictionPool");
     } catch (err: any) {
       console.error("Transaction error:", err);
-
-      toast.error(`Transaction failed: ${err.message || err}`);
+      toast.error(`Transaction failed: ${err?.message ?? String(err)}`);
     } finally {
       setIsSubmitting(false);
     }

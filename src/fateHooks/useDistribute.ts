@@ -24,9 +24,7 @@ export function useDistribute() {
       }
 
       const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const CLOCK_ID =
-        "0x0000000000000000000000000000000000000000000000000000000000000006";
-
+      const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
@@ -63,17 +61,14 @@ export function useDistribute() {
           );
         }
 
-        const { suiPriceObjectId } = await updatePythPrice([pool.assetId]);
         console.log("Price updated, settling outcome...");
 
-        // Step 2: Settle outcome
         const tx = new Transaction();
         tx.moveCall({
-          target: `${PACKAGE_ID}::prediction_pool::settle_outcome_entry`,
+          target: `${PACKAGE_ID}::prediction_pool::rebalance_pool_entry`,
           arguments: [
             tx.object(pool.id),
-            tx.object(suiPriceObjectId),
-            tx.object(CLOCK_ID),
+            tx.object(SUPRA_ORACLE_HOLDER!),
           ],
         });
 
@@ -84,6 +79,7 @@ export function useDistribute() {
 
         console.log("Settlement result:", result);
         toast.success("Outcome settlement successful!");
+        window.location.reload();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error("Settle outcome failed:", error);

@@ -213,7 +213,7 @@ const ExploreFatePools = () => {
         const description = fields.description || "";
         const currentPrice = toIntSafe(fields.current_price, 0);
         const assetAddress =
-          fields.asset_address || bytesToHex0x(fields.asset_id) || "";
+          fields.pair_id || bytesToHex0x(fields.asset_id) || "";
         const creator = fields.pool_creator || eventData?.creator || "";
 
         // Calculate reserves and fees

@@ -92,17 +92,17 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
         <select
           id="assetId"
           name="assetId"
-          value={formData.assetId || ""}
-          onChange={(e) => updateFormData({ assetId: e.target.value, assetAddress: e.target.value })}
+          value={formData.pairId || ""}
+          onChange={(e) => updateFormData({ pairId: e.target.value, assetAddress: e.target.value })}
           className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 text-black dark:text-white bg-white dark:bg-neutral-800 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         >
           <option value="" disabled>
             Select an Asset ID
           </option>
-          <option value="0xf9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b">
+          <option value="18">
             BTC/USD
           </option>
-          <option value="0xca80ba6dc32e08d06f1aa886011eed1d77c77be9eb761cc10d72b7d0a2fd57a6">ETH/USD</option>
+          <option value="19">ETH/USD</option>
           {/* <option value="0x73dc009953c83c944690037ea477df627657f45c14f16ad3a61089c5a3f9f4f2">ADA/USD</option> */}
         </select>
       </div>

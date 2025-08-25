@@ -48,8 +48,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
                 </TooltipTrigger>
                 <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
                   <p className="w-64 text-sm">
-                    Percentage of fees that rebalances the pool in a zero-sum
-                    model favoring long-term participants.
+                    Percentage of fees allocated to the Protocol
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -76,7 +75,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
           <div className="flex items-center gap-2">
             <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
             <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Stable Order Fee *
+              Mint Fee *
             </Label>
             <TooltipProvider>
               <Tooltip>
@@ -85,7 +84,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
                 </TooltipTrigger>
                 <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
                   <p className="w-64 text-sm">
-                    Percentage of fees allocated to the Stable Order
+                    Percentage of fees charged and transfered to opposite side when minting new tokens.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -97,8 +96,43 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             step="0.01"
             min="0"
             max="100"
-            value={formData.stableOrderFee}
-            onChange={(e) => updateFormData({ stableOrderFee: e.target.value })}
+            value={formData.mintFee}
+            onChange={(e) => updateFormData({ mintFee: e.target.value })}
+            className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
+              errors.stakeFee ? "border-red-500" : ""
+            }`}
+          />
+          {errors.stakeFee && (
+            <p className="text-red-500 text-sm">{errors.stakeFee}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+              Burn Fee *
+            </Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
+                  <p className="w-64 text-sm">
+                    Percentage of fees charged and transfered to opposite side when buring tokens.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Input
+            type="number"
+            placeholder="0"
+            step="0.01"
+            min="0"
+            max="100"
+            value={formData.burnFee}
+            onChange={(e) => updateFormData({ burnFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
               errors.stakeFee ? "border-red-500" : ""
             }`}

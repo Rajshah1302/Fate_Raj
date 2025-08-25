@@ -115,10 +115,18 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-600 dark:text-neutral-400">
-                Stable Order Fee:
+                Mint Fee:
               </span>
               <span className="font-medium text-black dark:text-white">
-                {formData.stableOrderFee || "0"}%
+                {formData.mintFee || "0"}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-neutral-600 dark:text-neutral-400">
+                Burn Fee:
+              </span>
+              <span className="font-medium text-black dark:text-white">
+                {formData.burnFee || "0"}%
               </span>
             </div>
             <div className="flex justify-between">
