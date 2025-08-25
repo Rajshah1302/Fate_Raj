@@ -132,7 +132,6 @@ const VaultSection = ({
         amount: parseFloat(sellAmount),
         isBull,
         vaultId: poolData.id,
-        assetId: poolData.asset_id,
       });
       setSellAmount("");
     } catch (err: any) {
