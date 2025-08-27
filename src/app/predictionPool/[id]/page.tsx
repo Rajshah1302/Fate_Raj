@@ -236,7 +236,7 @@ export default function PredictionPoolDashboard() {
 
   return (
     <AppLoader minDuration={700}>
-      <div className="min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white">
+      <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white">
         <Navbar />
         <StickyCursor stickyRef={stickyRef} />
 
@@ -248,7 +248,7 @@ export default function PredictionPoolDashboard() {
           )}
 
           {/* Pool Info */}
-          <div className="border border-neutral-300 dark:border-neutral-600 rounded-lg p-3 bg-white dark:bg-neutral-900 mb-4 shadow-sm">
+          <div className="border rounded-xl border-neutral-300 dark:border-neutral-600 p-3 bg-white dark:bg-neutral-900 mb-6 shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="flex-2 p-1">
                 <div className="flex items-center space-x-3">
@@ -325,7 +325,7 @@ export default function PredictionPoolDashboard() {
                   />
                 </div>
               </div>
-              <div className="lg:min-w-[300px] mt-1">
+              <div className="lg:min-w-[300px] mt-1 mr-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
                   <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-3 justify-center items-center flex flex-col">
                     <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
@@ -377,7 +377,7 @@ export default function PredictionPoolDashboard() {
           </div>
 
           {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-16 mt-3">
             {/* Bull Vault */}
             <VaultSection
               isBull={true}
@@ -393,7 +393,7 @@ export default function PredictionPoolDashboard() {
 
             {/* Chart */}
             <div className="lg:col-span-2">
-              <div className="border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
+              <div className="border  rounded-xl border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
                 <div className="p-6">
                   <TradingViewWidget
                     assetId={poolData.asset_id}

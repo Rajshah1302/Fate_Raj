@@ -113,7 +113,7 @@ const SummaryCard = ({
   icon: React.ComponentType<any>;
   trend?: "up" | "down" | "neutral";
 }) => (
-  <Card className="group relative overflow-hidden border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-blue-300/50 dark:hover:border-blue-500/30">
+  <Card className="group relative overflow-hidden  border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-blue-300/50 dark:hover:border-blue-500/30">
     {/* Subtle gradient overlay */}
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -201,7 +201,11 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
-            {pool.totalValue.toFixed(4)} SUI
+            {pool.totalValue.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 4,
+            })}{" "}
+            SUI
           </div>
           <div
             className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -210,38 +214,52 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
                 : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
             }`}
           >
-            {pool.totalPnL >= 0 ? "+" : ""}
-            {pool.totalPnL.toFixed(4)} SUI (
+            {pool.totalPnL > 0.1 ? "+" : ""}
+            {pool.totalPnL.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 4,
+            })}{" "}
+            SUI (
             {pool.totalCostBasis > 0
-              ? ((pool.totalPnL / pool.totalCostBasis) * 100).toFixed(2)
-              : "0.00"}
-            %)
+              ? ((pool.totalPnL / pool.totalCostBasis) * 100).toLocaleString(
+                  undefined,
+                  {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  }
+                )
+              : "0"}
+            % )
           </div>
         </div>
       </div>
 
       {/* Position details */}
-      <div className="relative grid grid-cols-2 gap-4 text-xs">
-        {pool.bullBalance > 0 && (
-          <div className="space-y-1">
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Bull Position
-            </div>
-            <div className="font-medium text-green-600 dark:text-green-400">
-              {pool.bullBalance.toFixed(2)} tokens
-            </div>
+      <div className="relative flex justify-between text-xs">
+        <div className="space-y-1 text-left">
+          <div className="text-neutral-600 dark:text-neutral-400">
+            Bull Position
           </div>
-        )}
-        {pool.bearBalance > 0 && (
-          <div className="space-y-1">
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Bear Position
-            </div>
-            <div className="font-medium text-red-600 dark:text-red-400">
-              {pool.bearBalance.toFixed(2)} tokens
-            </div>
+          <div className="font-medium text-green-600 dark:text-green-400">
+            {pool.bullBalance.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2,
+            })}{" "}
+            tokens
           </div>
-        )}
+        </div>
+        <div className="space-y-1 text-right">
+          <div className="text-neutral-600 dark:text-neutral-400">
+            Bear Position
+          </div>
+          <div className="font-medium text-red-600 dark:text-red-400">
+            {pool.bearBalance.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2,
+            })}{" "}
+            tokens
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -521,9 +539,8 @@ export default function PortfolioPage() {
       <AppLoader minDuration={500}>
         <Navbar />
         <StickyCursor stickyRef={stickyRef} />
-        <div className="min-h-screen bg-gradient-to-br from-white via-white to-white dark:from-neutral-900 dark:via-blue-950/20 dark:to-neutral-900 p-4 md:p-6">
-          <div className="max-w-7xl mx-auto space-y-8">           
-
+        <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white p-4 md:p-6">
+          <div className="max-w-7xl mx-auto space-y-8">
             {/* Debug Info */}
             {registryError && (
               <Card className="border-red-200/60 dark:border-red-800/60 bg-gradient-to-r from-red-50/80 to-red-100/60 dark:from-red-900/20 dark:to-red-800/20 backdrop-blur-sm p-4 shadow-lg">
@@ -560,13 +577,22 @@ export default function PortfolioPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <SummaryCard
                 title="Total Portfolio Value"
-                value={`${totalPortfolioValue.toFixed(4)} SUI`}
+                value={`${totalPortfolioValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 4,
+                })} SUI`}
                 icon={DollarSign}
                 trend="neutral"
               />
               <SummaryCard
                 title="Total P&L"
-                value={`${totalPnL >= 0 ? "+" : ""}${totalPnL.toFixed(4)} SUI`}
+                value={`${totalPnL >= 0 ? "+" : ""}${totalPnL.toLocaleString(
+                  undefined,
+                  {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 4,
+                  }
+                )} SUI`}
                 icon={totalPnL >= 0 ? TrendingUp : TrendingDown}
                 trend={totalPnL >= 0 ? "up" : "down"}
               />
@@ -574,16 +600,19 @@ export default function PortfolioPage() {
                 title="Total Return %"
                 value={`${
                   totalReturnPercentage >= 0 ? "+" : ""
-                }${totalReturnPercentage.toFixed(2)}%`}
+                }${totalReturnPercentage.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}%`}
                 icon={Activity}
                 trend={totalReturnPercentage >= 0 ? "up" : "down"}
               />
             </div>
 
             {activePoolsData.length > 0 ? (
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 ">
                 {/* Portfolio Distribution Chart */}
-                <Card className="xl:col-span-2 border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
+                <Card className="xl:col-span-3 border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
@@ -641,7 +670,10 @@ export default function PortfolioPage() {
                               color: "#000",
                             }}
                             formatter={(value: number) => [
-                              `${value.toFixed(4)} SUI`,
+                              `${value.toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 4,
+                              })} SUI`,
                               "Value",
                             ]}
                           />
@@ -668,7 +700,10 @@ export default function PortfolioPage() {
                           </Pie>
                           <Tooltip
                             formatter={(value: number) => [
-                              `${value.toFixed(4)} SUI`,
+                              `${value.toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 4,
+                              })} SUI`,
                               "Value",
                             ]}
                             contentStyle={{
@@ -698,7 +733,7 @@ export default function PortfolioPage() {
                 </Card>
 
                 {/* Active Positions */}
-                <Card className="border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
+                <Card className="border-neutral-200/60 xl:col-span-2  dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
                   <CardHeader>
                     <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100 mb-2">
                       Active Positions

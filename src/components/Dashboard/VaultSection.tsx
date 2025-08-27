@@ -178,7 +178,7 @@ const VaultSection = ({
   );
 
   return (
-    <div className="border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
+    <div className="border rounded-xl border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-neutral-200 dark:border-neutral-700">
