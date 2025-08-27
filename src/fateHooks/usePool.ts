@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { SuiClient } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
+import Decimal from "decimal.js";
 
 interface TokenFields {
   id: {
@@ -206,14 +207,22 @@ export const usePool = (
               true
             );
           }
+          const PRECISION_SCALE = new Decimal(1_000_000_000);
 
           const bullAvgPrice = returnValues[0]
-            ? parseU64LEBigInt(returnValues[0][0])
-            : BigInt(0);
+            ? new Decimal(parseU64LEBigInt(returnValues[0][0]).toString()).div(
+                PRECISION_SCALE
+              )
+            : new Decimal(0);
 
           const bearAvgPrice = returnValues[0]
-            ? parseU64LEBigInt(returnValues[1][0])
-            : BigInt(0);
+            ? new Decimal(parseU64LEBigInt(returnValues[1][0]).toString()).div(
+                PRECISION_SCALE
+              )
+            : new Decimal(0);
+          // const bearAvgPrice = returnValues[0]
+          //   ? parseU64LEBigInt(returnValues[1][0]) / PRECISION_SCALE
+          //   : BigInt(0);
 
           console.log("Parsed Average Prices:", { bullAvgPrice, bearAvgPrice });
 

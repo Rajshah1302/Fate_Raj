@@ -24,7 +24,7 @@ export function useDistribute() {
       }
 
       const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+      const NEXT_SUPRA_ORACLE_HOLDER = process.env.NEXT_SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
@@ -68,7 +68,7 @@ export function useDistribute() {
           target: `${PACKAGE_ID}::prediction_pool::rebalance_pool_entry`,
           arguments: [
             tx.object(pool.id),
-            tx.object(SUPRA_ORACLE_HOLDER!),
+            tx.object(NEXT_SUPRA_ORACLE_HOLDER!),
           ],
         });
 

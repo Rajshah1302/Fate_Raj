@@ -21,10 +21,10 @@ export function useSellTokens() {
       }
 
       const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
-
-      if (!PACKAGE_ID || !SUPRA_ORACLE_HOLDER) {
-        toast.error("Missing PACKAGE_ID or SUPRA_ORACLE_HOLDER in env");
+      const NEXT_SUPRA_ORACLE_HOLDER = process.env.NEXT_SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+      const NEXT_GLOBAL_REGISTRY = process.env.NEXT_GLOBAL_REGISTRY || '0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a';
+      if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
+        toast.error("Missing PACKAGE_ID or NEXT_SUPRA_ORACLE_HOLDER in env");
         return;
       }
 
@@ -40,14 +40,15 @@ export function useSellTokens() {
         tx.moveCall({
           target: `${PACKAGE_ID}::prediction_pool::redeem_token`,
           arguments: [
-            tx.object(vaultId),               
+            tx.object(vaultId),  
+            tx.object(NEXT_GLOBAL_REGISTRY!),             
             tx.pure.bool(isBull),             
             tx.pure.u64(tokenAmount),         
-            tx.object(SUPRA_ORACLE_HOLDER),   
+            tx.object(NEXT_SUPRA_ORACLE_HOLDER),   
           ],
         });
 
-        tx.setGasBudget(100_000_000);
+        tx.setGasBudget(100_000_00);
 
         console.log("Executing sell transaction...");
         const result = await signAndExecuteTransaction({ transaction: tx });

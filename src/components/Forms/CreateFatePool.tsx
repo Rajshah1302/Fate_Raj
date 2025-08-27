@@ -128,9 +128,9 @@ export default function CreateFatePoolForm() {
     }
 
     const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-    const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
-
-    if (!PACKAGE_ID || !SUPRA_ORACLE_HOLDER) {
+    const NEXT_SUPRA_ORACLE_HOLDER = process.env.NEXT_SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+    const NEXT_GLOBAL_REGISTRY = process.env.NEXT_GLOBAL_REGISTRY || '0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a';
+    if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
       toast.error(
         "Missing environment variables: NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_SUPRA_ORACLE_HOLDER"
       );
@@ -171,6 +171,7 @@ export default function CreateFatePoolForm() {
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
+          tx.object(NEXT_GLOBAL_REGISTRY!),
           tx.pure.vector("u8", strToU8Vec(poolName)),
           tx.pure.vector("u8", strToU8Vec(poolDescription)),
           tx.pure.u32(pairId),
@@ -184,7 +185,7 @@ export default function CreateFatePoolForm() {
           tx.pure.vector("u8", strToU8Vec(bullTokenSymbol)),
           tx.pure.vector("u8", strToU8Vec(bearTokenName)),
           tx.pure.vector("u8", strToU8Vec(bearTokenSymbol)),
-          tx.object(SUPRA_ORACLE_HOLDER),
+          tx.object(NEXT_SUPRA_ORACLE_HOLDER),
         ],
       });
 

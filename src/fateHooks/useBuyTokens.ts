@@ -24,14 +24,18 @@ export function useBuyTokens() {
       }
 
       const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const SUPRA_ORACLE_HOLDER = process.env.SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
-      
+      const NEXT_SUPRA_ORACLE_HOLDER =
+        process.env.NEXT_SUPRA_ORACLE_HOLDER ||
+        "0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570";
+      const NEXT_GLOBAL_REGISTRY = process.env.NEXT_GLOBAL_REGISTRY || '0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a';
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
       }
-      if (!SUPRA_ORACLE_HOLDER) {
-        toast.error("Missing SUPRA_ORACLE_HOLDER in environment variables");
+      if (!NEXT_SUPRA_ORACLE_HOLDER) {
+        toast.error(
+          "Missing NEXT_SUPRA_ORACLE_HOLDER in environment variables"
+        );
         return;
       }
 
@@ -68,9 +72,10 @@ export function useBuyTokens() {
         tx.moveCall({
           target: `${PACKAGE_ID}::prediction_pool::purchase_token`,
           arguments: [
-            tx.object(vaultId), 
-            tx.pure.bool(isBull), 
-            tx.object(SUPRA_ORACLE_HOLDER as string), 
+            tx.object(vaultId),
+            tx.object(NEXT_GLOBAL_REGISTRY!),
+            tx.pure.bool(isBull),
+            tx.object(NEXT_SUPRA_ORACLE_HOLDER as string),
             tx.splitCoins(tx.gas, [tx.pure.u64(amountInMist)]),
           ],
         });

@@ -7,7 +7,8 @@ import Footer from "@/components/layout/Footer";
 import { SuiClient } from "@mysten/sui/client";
 import { useRouter } from "next/navigation";
 import { Token } from "@/types/Token";
-import { Pool, PoolCreatedEvent } from "@/types/Pool";
+import { Pool } from "@/types/Pool";
+import { Transaction } from "@mysten/sui/transactions";
 import StickyCursor from "@/components/StickyCursor";
 import {
   Select,
@@ -19,6 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
 import { ASSET_CONFIG } from "@/config/assets";
+import { useWallet } from "@suiet/wallet-kit";
+import { bcs } from "@mysten/sui/bcs";
+import toast from "react-hot-toast";
 
 interface EnhancedPool extends Pool {
   total_fees: number;
@@ -45,6 +49,11 @@ const ExploreFatePools = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const { account } = useWallet();
+  const accountAddress = account?.address || "";
+  const REGISTRY_ID =
+    process.env.NEXT_GLOBAL_REGISTRY ||
+    "0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a";
   const [filters, setFilters] = useState<FilterState>({
     asset: "",
     minLiquidity: 0,
@@ -81,7 +90,12 @@ const ExploreFatePools = () => {
   useEffect(() => {
     const fetchPools = async () => {
       if (!PACKAGE_ID) {
-        console.warn("Missing NEXT_PUBLIC_PACKAGE_ID");
+        console.warn(
+          "Missing NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_REGISTRY_ID"
+        );
+        toast.error(
+          "Missing NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_REGISTRY_ID"
+        );
         setLoading(false);
         return;
       }
@@ -89,15 +103,16 @@ const ExploreFatePools = () => {
       try {
         setLoading(true);
 
-        let poolData = await fetchPoolsFromEvents();
-        if (poolData.length === 0) {
-          poolData = await fetchPoolsFromObjects();
+        const poolIds = await fetchPoolsFromRegistry();
+
+        if (poolIds.length === 0) {
+          console.warn("No pools found in registry");
+          setPools([]);
+          return;
         }
 
         const enhancedPools = await Promise.allSettled(
-          poolData.map(({ poolId, eventData }) =>
-            enhancePoolData(poolId, eventData)
-          )
+          poolIds.map((poolId) => enhancePoolData(poolId))
         );
 
         const validPools = enhancedPools
@@ -116,85 +131,38 @@ const ExploreFatePools = () => {
       }
     };
 
-    const fetchPoolsFromEvents = async (): Promise<
-      Array<{ poolId: string; eventData?: PoolCreatedEvent }>
-    > => {
+    const fetchPoolsFromRegistry = async (): Promise<string[]> => {
       try {
-        const eventsResponse = await client.queryEvents({
-          query: {
-            MoveEventType: `${PACKAGE_ID}::prediction_pool::PoolCreated`,
-          },
-          limit: 50,
-          order: "descending",
+        const client = new SuiClient({
+          url: "https://fullnode.testnet.sui.io:443",
         });
 
-        return eventsResponse.data
-          .map((event) => {
-            if (event.parsedJson && typeof event.parsedJson === "object") {
-              const parsed = event.parsedJson as any;
-              return {
-                poolId: parsed.pool_id,
-                eventData: {
-                  pool_id: parsed.pool_id,
-                  name: parsed.name,
-                  creator: parsed.creator,
-                  initial_price: parsed.initial_price,
-                },
-              };
-            }
-            return null;
-          })
-          .filter(
-            (item): item is { poolId: string; eventData: PoolCreatedEvent } =>
-              item !== null
-          );
+        const tx = new Transaction();
+        tx.moveCall({
+          target: `${PACKAGE_ID}::registry::get_all_pools`,
+          arguments: [tx.object(REGISTRY_ID)],
+        });
+
+        const response = await client.devInspectTransactionBlock({
+          transactionBlock: tx,
+          sender: accountAddress!,
+        });
+        console.log("Dev inspect registry response:", JSON.stringify(response));
+        const returnValues = response.results?.[0]?.returnValues?.[0];
+        if (!returnValues || !Array.isArray(returnValues)) return [];
+
+        const byteArray = Uint8Array.from(returnValues[0]);
+        const poolIds = bcs.vector(bcs.Address).parse(byteArray);
+
+        return poolIds;
       } catch (err) {
-        console.error("Error fetching events:", err);
-        return [];
-      }
-    };
-
-    const fetchPoolsFromObjects = async (): Promise<
-      Array<{ poolId: string }>
-    > => {
-      try {
-        const txnResponse = await client.queryTransactionBlocks({
-          filter: {
-            MoveFunction: {
-              package: PACKAGE_ID || "",
-              module: "prediction_pool",
-              function: "create_pool",
-            },
-          },
-          options: { showObjectChanges: true },
-          order: "descending",
-        });
-
-        const poolIds: string[] = [];
-        const PREDICTION_POOL_TYPE = `${PACKAGE_ID}::prediction_pool::PredictionPool`;
-
-        txnResponse.data.forEach((tx) => {
-          tx.objectChanges?.forEach((change) => {
-            if (
-              change.type === "created" &&
-              "objectType" in change &&
-              change.objectType === PREDICTION_POOL_TYPE
-            ) {
-              poolIds.push(change.objectId);
-            }
-          });
-        });
-
-        return poolIds.map((poolId) => ({ poolId }));
-      } catch (err) {
-        console.error("Error fetching from objects:", err);
+        console.error("Error fetching pools from registry:", err);
         return [];
       }
     };
 
     const enhancePoolData = async (
-      poolId: string,
-      eventData?: PoolCreatedEvent
+      poolId: string
     ): Promise<EnhancedPool | null> => {
       try {
         const response = await client.getObject({
@@ -208,13 +176,13 @@ const ExploreFatePools = () => {
 
         const fields = (response.data.content as any).fields;
         console.log("Enhancing pool:", poolId, JSON.stringify(fields));
-        const name =
-          fields.name || eventData?.name || `Pool ${poolId.slice(-8)}`;
+
+        const name = fields.name || `Pool ${poolId.slice(-8)}`;
         const description = fields.description || "";
         const currentPrice = toIntSafe(fields.current_price, 0);
         const assetAddress =
           fields.pair_id || bytesToHex0x(fields.asset_id) || "";
-        const creator = fields.pool_creator || eventData?.creator || "";
+        const creator = fields.pool_creator || "";
 
         // Calculate reserves and fees
         const bullReserve = toIntSafe(fields.bull_reserve, 0);
@@ -222,9 +190,11 @@ const ExploreFatePools = () => {
         const totalLiquidity = bullReserve + bearReserve;
 
         const protocolFee = toIntSafe(fields.protocol_fee, 0);
-        const stableOrderFee = toIntSafe(fields.stable_order_fee, 0);
+        const mintFee = toIntSafe(fields.mint_fee, 0);
+        const burnFee = toIntSafe(fields.burn_fee, 0);
         const creatorFee = toIntSafe(fields.pool_creator_fee, 0);
-        const totalFees = protocolFee * 2 + stableOrderFee + creatorFee;
+        const totalFees = protocolFee + mintFee + burnFee + creatorFee;
+
         // Calculate percentages
         const bullPercentage =
           totalLiquidity > 0 ? (bullReserve / totalLiquidity) * 100 : 50;
@@ -275,7 +245,7 @@ const ExploreFatePools = () => {
           bear_reserve: bearReserve,
           bullToken: createToken(fields.bull_token, "BULL", bullReserve),
           bearToken: createToken(fields.bear_token, "BEAR", bearReserve),
-          created_at: eventData ? Date.now() : undefined,
+          created_at: Date.now(), // Since we can't get exact creation time from registry, use current time
           total_fees: totalFees,
           asset_name: assetInfo.name,
           total_liquidity: totalLiquidity,
@@ -630,7 +600,6 @@ const ExploreFatePools = () => {
           </div>
         </div>
       </div>
-
       <Footer />
     </>
   );

@@ -247,50 +247,6 @@ export default function PredictionPoolDashboard() {
             </div>
           )}
 
-          {/* Real-time Status Bar */}
-          {/* <div className="mb-4 flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isPolling ? 'bg-green-500' : 'bg-red-500'} ${isPolling ? 'animate-pulse' : ''}`}></div>
-                <span className="text-sm font-medium">
-                  {isPolling ? 'Live Updates' : 'Updates Paused'}
-                </span>
-              </div>
-              <div className="text-xs text-neutral-600 dark:text-neutral-400">
-                Last updated: {lastUpdateTime.toLocaleTimeString()}
-              </div>
-              {hasChanges && (
-                <div className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                  Data Updated
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                Updates: {updateCount}
-              </span>
-              <Button
-                onClick={togglePolling}
-                size="sm"
-                variant="outline"
-                className="flex items-center space-x-1"
-              >
-                {isPolling ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                <span className="text-xs">{isPolling ? 'Pause' : 'Resume'}</span>
-              </Button>
-              <Button
-                onClick={handlePoll}
-                size="sm"
-                variant="outline"
-                disabled={loading}
-                className="flex items-center space-x-1"
-              >
-                <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                <span className="text-xs">Refresh</span>
-              </Button>
-            </div>
-          </div> */}
-
           {/* Pool Info */}
           <div className="border border-neutral-300 dark:border-neutral-600 rounded-lg p-3 bg-white dark:bg-neutral-900 mb-4 shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -416,18 +372,6 @@ export default function PredictionPoolDashboard() {
                     </div>
                   </div>
                 </div>
-                {/* <Button
-                  onClick={handlePoll}
-                  size="sm"
-                  variant="outline"
-                  disabled={loading}
-                  className="flex items-center space-x-1"
-                >
-                  <RefreshCw
-                    className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
-                  />
-                  <span className="text-xs">Refresh</span>
-                </Button> */}
               </div>
             </div>
           </div>

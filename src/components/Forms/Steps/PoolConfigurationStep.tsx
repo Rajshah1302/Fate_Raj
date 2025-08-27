@@ -1,14 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { InfoIcon, Coins } from "lucide-react";
 import type { FormData } from "@/types/FormData";
+import { ASSET_CONFIG } from "@/config/assets";
+import { Coins } from "lucide-react";
 
 type PoolConfigurationStepProps = {
   formData: FormData;
@@ -33,24 +29,13 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
           >
             Name of the Fate Pool *
           </Label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                <p className="w-64 text-sm">
-                  Enter a unique and descriptive name for your Fate Pool
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          
         </div>
         <Input
           type="text"
           id="poolName"
           name="poolName"
-          placeholder="e.g. FateBTC"
+          placeholder="Enter descriptive name for your pool"
           value={formData.poolName}
           onChange={(e) => updateFormData({ poolName: e.target.value })}
           className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
@@ -74,7 +59,7 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
           type="text"
           id="poolDescription"
           name="poolDescription"
-          placeholder="e.g. A BTC/USD prediction pool"
+          placeholder="Enter a brief description of the pool (optional)"
           value={formData.poolDescription || ""}
           onChange={(e) => updateFormData({ poolDescription: e.target.value })}
           className="transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white"
@@ -93,17 +78,22 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
           id="assetId"
           name="assetId"
           value={formData.pairId || ""}
-          onChange={(e) => updateFormData({ pairId: e.target.value, assetAddress: e.target.value })}
+          onChange={(e) =>
+            updateFormData({
+              pairId: e.target.value,
+              assetAddress: e.target.value,
+            })
+          }
           className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 text-black dark:text-white bg-white dark:bg-neutral-800 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
         >
           <option value="" disabled>
             Select an Asset ID
           </option>
-          <option value="18">
-            BTC/USD
-          </option>
-          <option value="19">ETH/USD</option>
-          {/* <option value="0x73dc009953c83c944690037ea477df627657f45c14f16ad3a61089c5a3f9f4f2">ADA/USD</option> */}
+          {Object.values(ASSET_CONFIG).map((asset: any) => (
+            <option key={asset.coinId} value={asset.coinId}>
+              {asset.name}
+            </option>
+          ))}
         </select>
       </div>
     </div>
