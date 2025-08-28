@@ -3,8 +3,8 @@ import { useCallback } from "react";
 import { SuiClient } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
 import { useWallet } from "@suiet/wallet-kit";
-import { useUpdatePythPrice } from "./useUpdatePythPrice";
 import toast from "react-hot-toast";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
 interface PredictionPool {
   id: string;
@@ -14,7 +14,6 @@ interface PredictionPool {
 
 export function useDistribute() {
   const { account, signAndExecuteTransaction } = useWallet();
-  const { updatePythPrice } = useUpdatePythPrice();
 
   const distribute = useCallback(
     async (pool: PredictionPool) => {
@@ -23,8 +22,9 @@ export function useDistribute() {
         return;
       }
 
-      const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-      const NEXT_SUPRA_ORACLE_HOLDER = process.env.NEXT_SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+      const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
+      const NEXT_SUPRA_ORACLE_HOLDER =
+        PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
@@ -103,7 +103,7 @@ export function useDistribute() {
         toast.error(`Outcome settlement failed: ${errorMessage}`);
       }
     },
-    [account?.address, signAndExecuteTransaction, updatePythPrice]
+    [account?.address, signAndExecuteTransaction]
   );
 
   return { distribute };

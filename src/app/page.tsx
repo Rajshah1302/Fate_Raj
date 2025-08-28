@@ -13,8 +13,9 @@ import PoolsMarquee from "@/components/PoolMarquee";
 import { Pool, PoolCreatedEvent } from "@/types/Pool";
 import { Token } from "@/types/Token";
 import { SuiClient } from "@mysten/sui/client";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
-const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
+const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
 
 export default function Home() {
   const stickyRef = useRef<HTMLElement | null>(null);
@@ -30,7 +31,7 @@ export default function Home() {
   useEffect(() => {
     const fetchPredictionPools = async () => {
       if (!PACKAGE_ID) {
-        console.warn("Missing NEXT_PUBLIC_PACKAGE_ID in env");
+        console.warn("Missing PACKAGE_ID");
         return;
       }
 
@@ -279,7 +280,6 @@ export default function Home() {
 
     fetchPredictionPools();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]); 
 
   return (

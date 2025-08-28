@@ -18,11 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
 import { ASSET_CONFIG } from "@/config/assets";
 import { useWallet } from "@suiet/wallet-kit";
 import { bcs } from "@mysten/sui/bcs";
 import toast from "react-hot-toast";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
 interface EnhancedPool extends Pool {
   total_fees: number;
@@ -51,9 +51,8 @@ const ExploreFatePools = () => {
   const [showFilters, setShowFilters] = useState(false);
   const { account } = useWallet();
   const accountAddress = account?.address || "";
-  const REGISTRY_ID =
-    process.env.NEXT_GLOBAL_REGISTRY ||
-    "0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a";
+  const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
+  const REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
   const [filters, setFilters] = useState<FilterState>({
     asset: "",
     minLiquidity: 0,
@@ -89,12 +88,12 @@ const ExploreFatePools = () => {
 
   useEffect(() => {
     const fetchPools = async () => {
-      if (!PACKAGE_ID) {
+      if (!PACKAGE_ID || !REGISTRY_ID) {
         console.warn(
-          "Missing NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_REGISTRY_ID"
+          "Missing PACKAGE_ID or REGISTRY_ID"
         );
         toast.error(
-          "Missing NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_REGISTRY_ID"
+          "Missing PACKAGE_ID or REGISTRY_ID"
         );
         setLoading(false);
         return;
@@ -259,7 +258,7 @@ const ExploreFatePools = () => {
     };
 
     fetchPools();
-  }, [client]);
+  }, [PACKAGE_ID, REGISTRY_ID, accountAddress, client]);
 
   const filteredPools = useMemo(() => {
     return pools.filter((pool) => {
@@ -513,7 +512,9 @@ const ExploreFatePools = () => {
                         className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
                         onClick={() =>
                           router.push(
-                            `/predictionPool/${encodeURIComponent(pool.id)}`
+                            `/predictionPool/pool?id=${encodeURIComponent(
+                              pool.id
+                            )}`
                           )
                         }
                       >
