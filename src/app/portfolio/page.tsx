@@ -177,7 +177,7 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
     <div
       className="group relative overflow-hidden border border-neutral-200/60 dark:border-neutral-600/60 rounded-xl p-5 dark:bg-gradient-to-br dark:from-neutral-700/40 dark:to-neutral-800/40 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-blue-500/30"
       onClick={() => {
-        router.push(`predictionPool/${pool.id}`);
+        router.push(`predictionPool/pool?id=${pool.id}`);
       }}
     >
       {/* Animated background gradient */}

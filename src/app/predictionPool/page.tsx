@@ -513,7 +513,7 @@ const ExploreFatePools = () => {
                         className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
                         onClick={() =>
                           router.push(
-                            `/predictionPool/${encodeURIComponent(pool.id)}`
+                            `/predictionPool/pool?id=${encodeURIComponent(pool.id)}`
                           )
                         }
                       >
