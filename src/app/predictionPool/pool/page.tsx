@@ -1,4 +1,4 @@
-import PredictionPoolDashboard from "../[pool]/PredictionPoolDashboard";
+import PredictionPoolDashboard from "./PredictionPoolDashboard";
 
 export async function generateStaticParams() {
   return [
