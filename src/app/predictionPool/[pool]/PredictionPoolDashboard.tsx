@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import {
@@ -11,10 +10,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { InfoIcon, RefreshCw, Pause, Play } from "lucide-react";
+import { InfoIcon, RefreshCw } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { useWallet } from "@suiet/wallet-kit";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import TradingViewWidget from "@/components/TradingViewWidget";
 import { useDistribute } from "@/fateHooks/useDistribute";
 import { usePool } from "@/fateHooks/usePool";
@@ -30,16 +29,16 @@ export default function PredictionPoolDashboard() {
   const stickyRef = useRef<HTMLElement | null>(null);
   const { distribute } = useDistribute();
   const { theme } = useTheme();
-  const params = useParams();
+  const params = useSearchParams();
   const { account, connected } = useWallet();
+  const poolId = params?.get("id");
   const { pool, userBalances, userAvgPrices, loading, error, refetch } =
-    usePool(params?.id as string, account?.address as string);
+    usePool(poolId as string, account?.address as string);
 
   const [isDistributeLoading, setIsDistributeLoading] = useState(false);
   const [distributeError, setDistributeError] = useState("");
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [previousPoolData, setPreviousPoolData] = useState<any>(null);
-  const [updateCount, setUpdateCount] = useState(0);
 
   const POLLING_INTERVAL = 5000;
   const [pollingEnabledState, setPollingEnabledState] = useState(true);
@@ -91,10 +90,7 @@ export default function PredictionPoolDashboard() {
         burn_fee: 0,
       };
 
-  const { hasChanges, changes } = usePoolDataChanges(
-    poolData,
-    previousPoolData
-  );
+  const { changes } = usePoolDataChanges(poolData, previousPoolData);
 
   const handlePoll = useCallback(async () => {
     if (!pool?.id?.id || loading) return;
@@ -102,7 +98,6 @@ export default function PredictionPoolDashboard() {
     try {
       await refetch?.();
       setLastUpdateTime(new Date());
-      setUpdateCount((prev) => prev + 1);
     } catch (err) {
       console.error("Polling error:", err);
     }
@@ -113,7 +108,7 @@ export default function PredictionPoolDashboard() {
     [loading, pool?.id?.id, pollingEnabledState]
   );
 
-  const { isPolling, togglePolling } = usePolling(
+  const { isPolling } = usePolling(
     handlePoll,
     POLLING_INTERVAL,
     pollingEnabled
@@ -393,7 +388,7 @@ export default function PredictionPoolDashboard() {
 
             {/* Chart */}
             <div className="lg:col-span-2">
-              <div className="border  rounded-xl border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
+              <div className="border  rounded-xl border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 shadow-sm">
                 <div className="p-6">
                   <TradingViewWidget
                     assetId={poolData.asset_id}
