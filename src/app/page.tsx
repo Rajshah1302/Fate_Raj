@@ -280,7 +280,6 @@ export default function Home() {
 
     fetchPredictionPools();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]); 
 
   return (

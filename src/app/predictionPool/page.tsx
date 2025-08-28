@@ -258,7 +258,7 @@ const ExploreFatePools = () => {
     };
 
     fetchPools();
-  }, [REGISTRY_ID, accountAddress, client]);
+  }, [PACKAGE_ID, REGISTRY_ID, accountAddress, client]);
 
   const filteredPools = useMemo(() => {
     return pools.filter((pool) => {
