@@ -1,9 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import {
-  SuiPythClient,
-  SuiPriceServiceConnection,
-} from "@pythnetwork/pyth-sui-js";
-import { SuiClient } from "@mysten/sui/client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +13,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import PoolConfigurationStep from "./Steps/PoolConfigurationStep";
 import TokenConfigurationStep from "./Steps/TokenConfigurationStep";
-import AddressConfigurationStep from "./Steps/AddressConfigurationStep";
 import FeeConfigurationStep from "./Steps/FeeConfigurationStep";
 import ReviewStep from "./Steps/ReviewStep";
 import StepIndicator from "./Steps/StepIndicator";
@@ -25,6 +20,7 @@ import type { FormData } from "@/types/FormData";
 import { Transaction } from "@mysten/sui/transactions";
 import { useWallet } from "@suiet/wallet-kit";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 export default function CreateFatePoolForm() {
@@ -34,22 +30,23 @@ export default function CreateFatePoolForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const stepTitles = ["Pool", "Tokens", "Address", "Fees", "Review"];
-  const totalSteps = 5;
+  const stepTitles = ["Pool", "Tokens", "Fees", "Review"];
+  const totalSteps = 4;
 
-  // Form data state
   const [formData, setFormData] = useState<FormData>({
     poolName: "",
+    poolDescription: "",
+    pairId: "",
+    assetAddress: "",
     bullCoinName: "",
     bullCoinSymbol: "",
     bearCoinName: "",
     bearCoinSymbol: "",
-    creatorAddress: "",
-    creatorStakeFee: "",
-    creatorUnstakeFee: "",
-    stakeFee: "",
-    unstakeFee: "",
-    priceInfoObjectId: "",
+    poolCreatorFee: "",
+    poolCreatorAddress: "",
+    protocolFee: "",
+    mintFee: "",
+    burnFee: "",
   });
 
   const updateFormData = (updates: Partial<FormData>) => {
@@ -88,17 +85,17 @@ export default function CreateFatePoolForm() {
         }
         break;
       case 4:
-        if (!formData.creatorStakeFee.trim()) {
-          newErrors.creatorStakeFee = "Creator stake fee is required";
+        if (!formData.poolCreatorFee.trim()) {
+          newErrors.poolCreatorFee = "Creator stake fee is required";
         }
-        if (!formData.creatorUnstakeFee.trim()) {
-          newErrors.creatorUnstakeFee = "Creator unstake fee is required";
+        if (!formData.protocolFee.trim()) {
+          newErrors.protocolFee = "Creator unstake fee is required";
         }
-        if (!formData.stakeFee.trim()) {
-          newErrors.stakeFee = "Stake fee is required";
+        if (!formData.mintFee.trim()) {
+          newErrors.mintFee = "Mint fee is required";
         }
-        if (!formData.unstakeFee.trim()) {
-          newErrors.unstakeFee = "Unstake fee is required";
+        if (!formData.burnFee.trim()) {
+          newErrors.burnFee = "Burn fee is required";
         }
         break;
       default:
@@ -118,124 +115,103 @@ export default function CreateFatePoolForm() {
   const handlePrevious = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     console.log("Form submitted:", formData);
 
     if (!account?.address) {
-      alert("Please connect your wallet.");
+      toast.error("Please connect your wallet.");
       setIsSubmitting(false);
       return;
     }
 
     const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
-    const PYTH_STATE_ID = process.env.NEXT_PUBLIC_PYTH_STATE_ID;
-    const CLOCK_ID =
-      "0x0000000000000000000000000000000000000000000000000000000000000006";
-    const WORMHOLE_STATE_ID =
-      "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790";
-
-    if (!PACKAGE_ID || !PYTH_STATE_ID) {
-      alert("Missing environment variables for PACKAGE_ID or PYTH_STATE_ID");
+    const NEXT_SUPRA_ORACLE_HOLDER = process.env.NEXT_SUPRA_ORACLE_HOLDER || '0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570';
+    const NEXT_GLOBAL_REGISTRY = process.env.NEXT_GLOBAL_REGISTRY || '0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a';
+    if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
+      toast.error(
+        "Missing environment variables: NEXT_PUBLIC_PACKAGE_ID or NEXT_PUBLIC_SUPRA_ORACLE_HOLDER"
+      );
       setIsSubmitting(false);
       return;
     }
 
     try {
-      const poolName = formData.poolName || "Default Pool";
-      const poolDescription = formData.poolDescription || "A prediction pool";
-      const vaultCreatorFee = parseInt(formData.creatorStakeFee || "0");
-      const treasuryFee = parseInt(formData.unstakeFee || "0");
-      const treasuryAddress = formData.treasuryAddress || account.address;
-      const bullTokenName = `${poolName} Bull`;
-      const bullTokenSymbol = "BULL";
-      const bearTokenName = `${poolName} Bear`;
-      const bearTokenSymbol = "BEAR";
-
-      const connection = new SuiPriceServiceConnection(
-        "https://hermes-beta.pyth.network",
-        { priceFeedRequestConfig: { binary: true } }
-      );
-
-      const priceIDs: string[] = formData?.assetId
-        ? Array.isArray(formData.assetId)
-          ? formData.assetId
-          : [formData.assetId]
-        : [
-            "0x50c67b3fd225db8912a424dd4baed60ffdde625ed2feaaf283724f9608fea266",
-          ];
-
-      const priceUpdateData = await connection.getPriceFeedsUpdateData(
-        priceIDs
-      );
-
-      const suiClient = new SuiClient({
-        url: "https://fullnode.testnet.sui.io:443",
-      });
-      const pythClient = new SuiPythClient(
-        suiClient,
-        PYTH_STATE_ID,
-        WORMHOLE_STATE_ID
-      );
-
-      const updateTx = new Transaction();
-      const priceInfoObjectIds = await pythClient.updatePriceFeeds(
-        updateTx,
-        priceUpdateData,
-        priceIDs
-      );
-      const suiPriceObjectId = priceInfoObjectIds[0];
-      if (!suiPriceObjectId) {
-        throw new Error("suiPriceObjectId is undefined");
+      const poolName = formData.poolName?.trim() || "Default Pool";
+      const poolDescription =
+        formData.poolDescription?.trim() || "A prediction pool";
+      const pairId = Number(formData.pairId ?? 18);
+      if (!Number.isFinite(pairId) || pairId < 0 || pairId > 0xffffffff) {
+        toast.error("Invalid pair id. Provide a numeric pairId (u32).");
+        setIsSubmitting(false);
+        return;
       }
 
-      updateTx.setGasBudget(100_000_000);
-      console.log("Submitting price update transaction...");
-      await signAndExecuteTransaction({ transaction: updateTx });
+      const assetAddress =
+        formData.assetAddress || "0x0000000000000000000000000000000000000000";
+
+      const protocolFee = BigInt(Number(formData.protocolFee ?? 100));
+      const mintFee = BigInt(Number(formData.mintFee ?? 0)); 
+      const burnFee = BigInt(Number(formData.burnFee ?? 0)); 
+      const poolCreatorFee = BigInt(Number(formData.poolCreatorFee ?? 50));
+
+      const poolCreator = formData.poolCreatorAddress || account.address;
+
+      const bullTokenName = `${poolName} Bull`;
+      const bullTokenSymbol = formData.bullCoinSymbol ?? "BULL";
+      const bearTokenName = `${poolName} Bear`;
+      const bearTokenSymbol = formData.bearCoinSymbol ?? "BEAR";
+
+      const strToU8Vec = (s: string) => Array.from(Buffer.from(s, "utf8"));
 
       const tx = new Transaction();
-
-      const assetIdBytes = Array.from(Buffer.from(priceIDs[0].slice(2), "hex"));
 
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
-          tx.pure.vector("u8", Array.from(Buffer.from(poolName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(poolDescription, "utf8"))
-          ),
-          tx.pure.vector("u8", assetIdBytes),
-          tx.pure.u64(vaultCreatorFee),
-          tx.pure.u64(treasuryFee),
-          tx.pure.address(treasuryAddress),
-          tx.pure.vector("u8", Array.from(Buffer.from(bullTokenName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(bullTokenSymbol, "utf8"))
-          ),
-          tx.pure.vector("u8", Array.from(Buffer.from(bearTokenName, "utf8"))),
-          tx.pure.vector(
-            "u8",
-            Array.from(Buffer.from(bearTokenSymbol, "utf8"))
-          ),
-          tx.object(suiPriceObjectId),
-          tx.object(CLOCK_ID),
+          tx.object(NEXT_GLOBAL_REGISTRY!),
+          tx.pure.vector("u8", strToU8Vec(poolName)),
+          tx.pure.vector("u8", strToU8Vec(poolDescription)),
+          tx.pure.u32(pairId),
+          tx.pure.address(assetAddress),
+          tx.pure.u64(protocolFee),
+          tx.pure.u64(mintFee),
+          tx.pure.u64(burnFee),
+          tx.pure.u64(poolCreatorFee),
+          tx.pure.address(poolCreator),
+          tx.pure.vector("u8", strToU8Vec(bullTokenName)),
+          tx.pure.vector("u8", strToU8Vec(bullTokenSymbol)),
+          tx.pure.vector("u8", strToU8Vec(bearTokenName)),
+          tx.pure.vector("u8", strToU8Vec(bearTokenSymbol)),
+          tx.object(NEXT_SUPRA_ORACLE_HOLDER),
         ],
       });
 
-      tx.setGasBudget(500_000_000);
-      console.log("Submitting create_pool transaction...");
+      tx.setGasBudget(100_000_000);
+
+      console.log("Submitting create_pool tx...");
       const result = await signAndExecuteTransaction({ transaction: tx });
 
-      console.log("Pool created:", result);
-      alert("Prediction Pool created successfully!");
-      router.push("/explorePools");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.log("Pool created successfully:", result);
+
+      try {
+        const resultObj =
+          typeof result === "string" ? JSON.parse(result) : result;
+        const poolId = resultObj?.effects?.created?.[0]?.reference?.objectId;
+        if (poolId) {
+          console.log("New pool ID:", poolId);
+        }
+      } catch (e) {
+        console.debug("Could not parse result object for pool id", e);
+      }
+
+      toast.success("Prediction Pool created successfully!");
+      router.push("/predictionPool");
     } catch (err: any) {
       console.error("Transaction error:", err);
-      alert(`Transaction failed: ${err.message || err}`);
+      toast.error(`Transaction failed: ${err?.message ?? String(err)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -261,20 +237,13 @@ export default function CreateFatePoolForm() {
         );
       case 3:
         return (
-          <AddressConfigurationStep
-            formData={formData}
-            updateFormData={updateFormData}
-          />
-        );
-      case 4:
-        return (
           <FeeConfigurationStep
             formData={formData}
             updateFormData={updateFormData}
             errors={errors}
           />
         );
-      case 5:
+      case 4:
         return (
           <ReviewStep
             formData={formData}
@@ -288,14 +257,14 @@ export default function CreateFatePoolForm() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 h-[150vh] dark:bg-black bg-white">
+    <div className="max-w-4xl mx-auto p-4 dark:bg-black bg-white">
       <div className="bg-white dark:bg-black p-6 rounded-xl my-10">
-        <Card className="shadow-lg bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+        <Card className="shadow-lg bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700">
+          <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
             <CardTitle className="text-2xl font-bold text-black dark:text-white">
               Create Fate Pool
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-neutral-600 dark:text-neutral-400">
               Follow the steps to configure your new Fate Pool
             </CardDescription>
           </CardHeader>
@@ -308,31 +277,28 @@ export default function CreateFatePoolForm() {
 
             <div className="">{renderCurrentStep()}</div>
 
-            {currentStep < totalSteps && (
-              <>
-                <Separator className="bg-gray-200 dark:bg-gray-700 my-6" />
-                <div className="flex justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentStep === 1}
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleNext}
-                    className="flex items-center gap-2 bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </>
-            )}
+            <Separator className="bg-neutral-200 dark:bg-neutral-700 my-6" />
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 1}
+                className="flex items-center gap-2 bg-black text-white hover:bg-neutral-900 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={currentStep === 4}
+                className="flex items-center gap-2 bg-black text-white hover:bg-neutral-900 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
