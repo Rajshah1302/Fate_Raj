@@ -143,8 +143,8 @@ export default function CreateFatePoolForm() {
     try {
       const poolName = formData.poolName?.trim() || "Default Pool";
       const poolDescription =
-        formData.poolDescription?.trim() || "A prediction pool";
-      const pairId = Number(formData.pairId ?? 18);
+        formData.poolDescription?.trim() || "";
+      const pairId = Number(formData.pairId) || 18;
       if (!Number.isFinite(pairId) || pairId < 0 || pairId > 0xffffffff) {
         toast.error("Invalid pair id. Provide a numeric pairId (u32).");
         setIsSubmitting(false);
@@ -152,7 +152,7 @@ export default function CreateFatePoolForm() {
       }
 
       const assetAddress =
-        formData.assetAddress || "0x0000000000000000000000000000000000000000";
+        formData.pairId || "0x0000000000000000000000000000000000000000";
 
       const protocolFee = BigInt(Number(formData.protocolFee ?? 100));
       const mintFee = BigInt(Number(formData.mintFee ?? 0));

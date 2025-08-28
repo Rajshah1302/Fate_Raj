@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, TrendingUp, TrendingDown, Filter, X } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Filter, X, Wallet } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { SuiClient } from "@mysten/sui/client";
@@ -23,6 +23,7 @@ import { useWallet } from "@suiet/wallet-kit";
 import { bcs } from "@mysten/sui/bcs";
 import toast from "react-hot-toast";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
+import { Card, CardTitle } from "@/components/ui/card";
 
 interface EnhancedPool extends Pool {
   total_fees: number;
@@ -244,7 +245,7 @@ const ExploreFatePools = () => {
           bear_reserve: bearReserve,
           bullToken: createToken(fields.bull_token, "BULL", bullReserve),
           bearToken: createToken(fields.bear_token, "BEAR", bearReserve),
-          created_at: Date.now(), // Since we can't get exact creation time from registry, use current time
+          created_at: Date.now(), 
           total_fees: totalFees,
           asset_name: assetInfo.name,
           total_liquidity: totalLiquidity,
@@ -310,6 +311,27 @@ const ExploreFatePools = () => {
       maxError: null,
     });
   };
+  if (!account?.address) {
+      return (
+        <>
+          <Navbar />
+          <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
+            <Card className="p-8 text-center max-w-md border-neutral-200/60 dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
+              <div className="mb-6">
+                <Wallet className="h-12 w-12 mx-auto text-blue-500 dark:text-blue-400 mb-4" />
+                <CardTitle className="text-xl mb-2 text-neutral-900 dark:text-neutral-100">
+                  Connect Your Wallet
+                </CardTitle>
+                <p className="text-neutral-600 dark:text-neutral-400">
+                  Connect your wallet to view and explore prediction pools.
+                </p>
+              </div>
+            </Card>
+          </div>
+          <Footer />
+        </>
+      );
+    }
 
   return (
     <>
@@ -550,15 +572,15 @@ const ExploreFatePools = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
-                              <TrendingUp className="w-4 h-4 text-green-500" />
-                              <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                              <TrendingUp className="w-4 h-4 text-black dark:text-gray-600" />
+                              <span className="text-sm font-medium text-black dark:text-gray-600">
                                 {pool.bullPercentage.toFixed(1)}%
                               </span>
                             </div>
                             <span className="text-neutral-400">/</span>
                             <div className="flex items-center gap-1">
-                              <TrendingDown className="w-4 h-4 text-red-500" />
-                              <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                              <TrendingDown className="w-4 h-4 text-gray-400 dark:text-white" />
+                              <span className="text-sm font-medium text-gray-400 dark:text-white">
                                 {pool.bearPercentage.toFixed(1)}%
                               </span>
                             </div>

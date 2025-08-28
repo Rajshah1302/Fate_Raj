@@ -29,7 +29,6 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
           >
             Name of the Fate Pool *
           </Label>
-          
         </div>
         <Input
           type="text"
@@ -77,11 +76,11 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
         <select
           id="assetId"
           name="assetId"
-          value={formData.pairId || ""}
+          value={formData.pairId ?? ""}
           onChange={(e) =>
             updateFormData({
               pairId: e.target.value,
-              assetAddress: e.target.value,
+              assetAddress: ASSET_CONFIG[e.target.value].coinId,
             })
           }
           className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 text-black dark:text-white bg-white dark:bg-neutral-800 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
@@ -89,8 +88,8 @@ const PoolConfigurationStep: React.FC<PoolConfigurationStepProps> = ({
           <option value="" disabled>
             Select an Asset ID
           </option>
-          {Object.values(ASSET_CONFIG).map((asset: any) => (
-            <option key={asset.coinId} value={asset.coinId}>
+          {Object.entries(ASSET_CONFIG).map(([key, asset]: any) => (
+            <option key={key} value={key}>
               {asset.name}
             </option>
           ))}

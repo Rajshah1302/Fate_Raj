@@ -178,17 +178,17 @@ const VaultSection = ({
   );
 
   return (
-    <div className="border rounded-xl border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 shadow-sm">
+    <div className="border rounded-xl border-black dark:border-neutral-600 bg-white dark:bg-neutral-900 shadow-sm">
       <div className="p-6">
         {/* Header */}
-        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-neutral-200 dark:border-neutral-700">
+        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-black dark:border-neutral-700">
           {isBull ? (
-            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
-              <TrendingUp className="w-5 h-5 text-green-600" />
+            <div className="p-2 rounded-lg bg-black">
+              <TrendingUp className="w-5 h-5 text-white dark:text-white" />
             </div>
           ) : (
-            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
-              <TrendingDown className="w-5 h-5 text-red-600" />
+            <div className="p-2 rounded-lg bg-gray-300 dark:bg-white">
+              <TrendingDown className="w-5 h-5 text-white dark:text-black" />
             </div>
           )}
           <div>
@@ -219,25 +219,23 @@ const VaultSection = ({
           <StatRow
             label="Price"
             value={`${formatNumber(price, 6)} SUI`}
-            valueClass={`font-bold text-lg ${
-              isBull ? "text-green-600" : "text-red-600"
-            }`}
+            valueClass="font-bold text-lg text-neutral-900 dark:text-white"
           />
         </div>
 
         {/* User Portfolio */}
         {connected && (
-          <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 mb-6">
+          <div className="bg-neutral-200 dark:bg-neutral-800 rounded-lg p-4 mb-6">
             <h4 className="text-sm font-bold text-neutral-900 dark:text-white mb-3 uppercase tracking-wide">
               Your Position
             </h4>
             <div className="space-y-1">
               <StatRow
-                label="Tokens Held"
+                label="Tokens "
                 value={`${formatNumber(userTokens, 6)} ${symbol}`}
               />
               <StatRow
-                label="Position Value"
+                label="Value"
                 value={`${formatNumber(value, 6)} SUI`}
               />
               <StatRow
@@ -263,7 +261,7 @@ const VaultSection = ({
                 placeholder="Enter SUI amount"
                 value={buyAmount}
                 onChange={(e) => handleBuyAmountChange(e.target.value)}
-                className="bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-white"
+                className="bg-white dark:bg-neutral-800 border-black dark:border-neutral-600 text-neutral-900 dark:text-white placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-white"
               />
 
               {/* Buy Error Display */}
@@ -274,10 +272,10 @@ const VaultSection = ({
               )}
 
               <Button
-                className={`w-full font-semibold py-3 text-white transition-all duration-200 ${
+                className={`w-full font-semibold py-3 text-white dark:text-neutral-100 transition-all duration-200 ${
                   isBull
-                    ? "bg-green-600 hover:bg-green-700 active:bg-green-800"
-                    : "bg-red-600 hover:bg-red-700 active:bg-red-800"
+                    ? "bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-900 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:active:bg-neutral-800"
+                    : "bg-neutral-300 hover:bg-neutral-200 active:bg-neutral-400 text-neutral-800 dark:bg-neutral-600 dark:hover:bg-neutral-500 dark:active:bg-neutral-700 dark:text-neutral-100"
                 } ${
                   isBuyLoading ||
                   !buyAmount ||
@@ -309,7 +307,7 @@ const VaultSection = ({
                 placeholder="Enter token amount"
                 value={sellAmount}
                 onChange={(e) => handleSellAmountChange(e.target.value)}
-                className="bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-white"
+                className="bg-white dark:bg-neutral-800 border-black dark:border-neutral-600 text-neutral-900 dark:text-white placeholder-neutral-500 focus:border-neutral-900 dark:focus:border-white"
               />
 
               {/* Sell Error Display */}
@@ -335,8 +333,8 @@ const VaultSection = ({
                 variant="outline"
                 className={`w-full font-semibold py-3 transition-all duration-200 ${
                   isBull
-                    ? "border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/10"
-                    : "border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                    ? "border-neutral-800 text-neutral-800 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800/10"
+                    : "border-black text-neutral-600 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-400 dark:hover:bg-neutral-700/10"
                 } ${
                   isSellLoading ||
                   !sellAmount ||
@@ -361,7 +359,7 @@ const VaultSection = ({
             </div>
           </>
         ) : (
-          <div className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg">
+          <div className="mt-6 p-4 bg-neutral-100 dark:bg-neutral-800 border-2 border-dashed border-black dark:border-neutral-600 rounded-lg">
             <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300 text-center">
               Connect your wallet to start trading
             </p>

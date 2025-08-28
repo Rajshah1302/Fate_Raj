@@ -243,7 +243,7 @@ export default function PredictionPoolDashboard() {
           )}
 
           {/* Pool Info */}
-          <div className="border rounded-xl border-neutral-300 dark:border-neutral-600 p-3 bg-white dark:bg-neutral-900 mb-6 shadow-sm">
+          <div className="border rounded-xl border-black dark:border-neutral-600 p-3 bg-white dark:bg-neutral-900 mb-6 shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="flex-2 p-1">
                 <div className="flex items-center space-x-3">
@@ -322,43 +322,62 @@ export default function PredictionPoolDashboard() {
               </div>
               <div className="lg:min-w-[300px] mt-1 mr-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                  <div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-3 justify-center items-center flex flex-col">
+                  <div className="bg-neutral-200 dark:bg-neutral-800 rounded-lg p-3 justify-center items-center flex flex-col">
                     <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
                       Total Value Locked
                     </div>
                     <div
-                      className={`text-lg font-bold text-neutral-900 dark:text-white transition-all duration-300 ${
-                        changes.bull_reserve || changes.bear_reserve
-                          ? "text-blue-600 dark:text-blue-400"
-                          : ""
-                      }`}
+                      className="text-lg font-bold transition-all duration-300"
+                      style={{
+                        color:
+                          calculations.bullPercentage > calculations.bearPercentage
+                            ? theme === "dark"
+                              ? "#111" 
+                              : "#111" 
+                            : theme === "dark"
+                            ? "#fff":"gray-500"
+                            
+                      }}
                     >
                       {formatValue(calculations.totalReserves)}
                     </div>
 
                     {/* Pool Ratio Bar with animations */}
-                    <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 my-2 flex overflow-hidden">
+                    <div className="w-full rounded-full h-2 my-2 flex overflow-hidden bg-neutral-200 dark:bg-neutral-700">
+                      {/* Bull portion */}
                       <div
-                        className="bg-green-500 h-2 transition-all duration-500 ease-in-out"
-                        style={{ width: `${calculations.bullPercentage}%` }}
+                        className="h-2 transition-all duration-500 ease-in-out"
+                        style={{
+                          width: `${calculations.bullPercentage}%`,
+                          backgroundColor: theme === "dark" ? "#111" : "#333",
+                        }}
                       ></div>
+
+                      {/* Bear portion */}
                       <div
-                        className="bg-red-500 h-2 transition-all duration-500 ease-in-out"
-                        style={{ width: `${calculations.bearPercentage}%` }}
+                        className="h-2 transition-all duration-500 ease-in-out"
+                        style={{
+                          width: `${calculations.bearPercentage}%`,
+                          backgroundColor: theme === "dark" ? "gray-500" : "#fff",
+                          borderLeft:
+                            theme === "dark"
+                              ? "1px solid #888"
+                              : "1px solid #ddd",
+                        }}
                       ></div>
                     </div>
 
                     {/* Bull/Bear Text */}
                     <div className="flex justify-between w-full text-xs font-medium">
                       <span
-                        className={`text-green-600 dark:text-green-400 transition-colors duration-300 ${
+                        className={` text-black transition-colors duration-300 ${
                           changes.bull_reserve ? "font-bold" : ""
                         }`}
                       >
                         {calculations.bullPercentage.toFixed(1)}% Bull
                       </span>
                       <span
-                        className={`text-red-600 dark:text-red-400 transition-colors duration-300 ${
+                        className={`text-gray-500 dark:text-white transition-colors duration-300 ${
                           changes.bear_reserve ? "font-bold" : ""
                         }`}
                       >
@@ -388,7 +407,7 @@ export default function PredictionPoolDashboard() {
 
             {/* Chart */}
             <div className="lg:col-span-2">
-              <div className="border  rounded-xl border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 shadow-sm">
+              <div className="border  rounded-xl border-black dark:border-neutral-600 bg-white dark:bg-neutral-900 shadow-sm">
                 <div className="p-6">
                   <TradingViewWidget
                     assetId={poolData.asset_id}
@@ -398,7 +417,7 @@ export default function PredictionPoolDashboard() {
                   />
 
                   {/* Rebalance Section */}
-                  <div className="mt-6 p-6 border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800">
+                  <div className="mt-6 p-6 border rounded-xl border-black dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800">
                     <h4 className="font-bold mb-3 text-lg text-neutral-900 dark:text-white">
                       Rebalance Pool
                     </h4>
@@ -406,7 +425,7 @@ export default function PredictionPoolDashboard() {
                       Fetch current oracle price and move funds from the losing
                       vault to the winning vault.
                     </p>
-                    <div className="text-sm space-y-2 mb-4 bg-white dark:bg-neutral-900 p-4 rounded-lg border border-neutral-200 dark:border-neutral-600">
+                    <div className="text-sm space-y-2 mb-4 bg-white dark:bg-neutral-900 p-4 rounded-lg border border-black dark:border-neutral-600">
                       <div className="flex justify-between">
                         <span className="text-neutral-600 dark:text-neutral-400">
                           Price at last rebalance:
