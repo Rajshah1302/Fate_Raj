@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { SuiClient } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
 import Decimal from "decimal.js";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
 interface TokenFields {
   id: {
@@ -75,7 +76,7 @@ export const usePool = (
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const packageId = process.env.NEXT_PUBLIC_PACKAGE_ID;
+  const packageId = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
 
   const fetchUserBalances = async (
     client: SuiClient,

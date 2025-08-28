@@ -3,8 +3,8 @@ import { useCallback } from "react";
 import { SuiClient } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
 import { useWallet } from "@suiet/wallet-kit";
-import { useUpdatePythPrice } from "./useUpdatePythPrice";
 import toast from "react-hot-toast";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 interface BuyTokensParams {
   amount: number;
   isBull: boolean;
@@ -14,7 +14,6 @@ interface BuyTokensParams {
 
 export function useBuyTokens() {
   const { account, signAndExecuteTransaction } = useWallet();
-  const { updatePythPrice } = useUpdatePythPrice();
 
   const buyTokens = useCallback(
     async ({ amount, isBull, vaultId }: BuyTokensParams) => {
@@ -23,11 +22,10 @@ export function useBuyTokens() {
         return;
       }
 
-      const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID;
+      const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
       const NEXT_SUPRA_ORACLE_HOLDER =
-        process.env.NEXT_SUPRA_ORACLE_HOLDER ||
-        "0x87ef65b543ecb192e89d1e6afeaf38feeb13c3a20c20ce413b29a9cbfbebd570";
-      const NEXT_GLOBAL_REGISTRY = process.env.NEXT_GLOBAL_REGISTRY || '0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a';
+        PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
+      const NEXT_GLOBAL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
@@ -96,7 +94,7 @@ export function useBuyTokens() {
         );
       }
     },
-    [account?.address, signAndExecuteTransaction, updatePythPrice]
+    [account?.address, signAndExecuteTransaction]
   );
 
   return { buyTokens };

@@ -35,11 +35,10 @@ import { Transaction } from "@mysten/sui/transactions";
 import { useWallet } from "@suiet/wallet-kit";
 import { useRouter } from "next/navigation";
 import AppLoader from "@/components/Loader";
+import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
-const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID!;
-const REGISTRY_ID =
-  process.env.NEXT_GLOBAL_REGISTRY ||
-  "0x48fbdd71557a10315f14658ee6f855803d62402db5e77a90801df90407b43e2a";
+const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID
+const REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
 
 const CHART_COLORS = [
   "#3b82f6",
