@@ -238,7 +238,7 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
                 : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
             }`}
           >
-            {pool.totalPnL > 0.0001 ? "+" : ""}
+            {pool.totalPnL > 0 ? "+" : ""}
             {pool.totalPnL.toLocaleString(undefined, {
               minimumFractionDigits: 0,
               maximumFractionDigits: 4,
@@ -806,17 +806,15 @@ export default function PortfolioPage() {
                 {/* Bull and Bear Position Charts */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   {/* Bull Positions Chart */}
-                  {bullPositionsData.length > 0 && (
-                    <PositionChart
-                      data={bullPositionsData}
-                      title="Bull Positions"
-                      type="bull"
-                      showDistribution={showBullDistribution}
-                      onToggleView={() =>
-                        setShowBullDistribution(!showBullDistribution)
-                      }
-                    />
-                  )}
+                  <PositionChart
+                    data={bullPositionsData}
+                    title="Bull Positions"
+                    type="bull"
+                    showDistribution={showBullDistribution}
+                    onToggleView={() =>
+                      setShowBullDistribution(!showBullDistribution)
+                    }
+                  />
                   {/* Positions List */}
                   <Card className="border-black xl:col-span-1  dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
                     <CardHeader>
@@ -839,29 +837,15 @@ export default function PortfolioPage() {
                     </CardContent>
                   </Card>
                   {/* Bear Positions Chart */}
-                  {bearPositionsData.length > 0 && (
-                    <PositionChart
-                      data={bearPositionsData}
-                      title="Bear Positions"
-                      type="bear"
-                      showDistribution={showBearDistribution}
-                      onToggleView={() =>
-                        setShowBearDistribution(!showBearDistribution)
-                      }
-                    />
-                  )}
-
-                  {/* If only bull positions exist, make it span full width */}
-                  {bullPositionsData.length > 0 &&
-                    bearPositionsData.length === 0 && (
-                      <div className="xl:col-span-2"></div>
-                    )}
-
-                  {/* If only bear positions exist, make it span full width */}
-                  {bearPositionsData.length > 0 &&
-                    bullPositionsData.length === 0 && (
-                      <div className="xl:col-span-2"></div>
-                    )}
+                  <PositionChart
+                    data={bearPositionsData}
+                    title="Bear Positions"
+                    type="bear"
+                    showDistribution={showBearDistribution}
+                    onToggleView={() =>
+                      setShowBearDistribution(!showBearDistribution)
+                    }
+                  />
                 </div>
               </div>
             ) : !isLoading ? (
