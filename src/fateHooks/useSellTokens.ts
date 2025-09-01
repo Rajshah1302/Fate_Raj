@@ -23,7 +23,7 @@ export function useSellTokens() {
 
       const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
       const NEXT_SUPRA_ORACLE_HOLDER = PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
-      const NEXT_GLOBAL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
+      const USER_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.USER_REGISTRY;
       if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
         toast.error("Missing PACKAGE_ID or NEXT_SUPRA_ORACLE_HOLDER in env");
         return;
@@ -42,7 +42,7 @@ export function useSellTokens() {
           target: `${PACKAGE_ID}::prediction_pool::redeem_token`,
           arguments: [
             tx.object(vaultId),  
-            tx.object(NEXT_GLOBAL_REGISTRY!),             
+            tx.object(USER_REGISTRY!),             
             tx.pure.bool(isBull),             
             tx.pure.u64(tokenAmount),         
             tx.object(NEXT_SUPRA_ORACLE_HOLDER),   

@@ -25,7 +25,7 @@ export function useBuyTokens() {
       const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
       const NEXT_SUPRA_ORACLE_HOLDER =
         PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
-      const NEXT_GLOBAL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
+      const USER_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.USER_REGISTRY;
       if (!PACKAGE_ID) {
         toast.error("Missing PACKAGE_ID in environment variables");
         return;
@@ -71,7 +71,7 @@ export function useBuyTokens() {
           target: `${PACKAGE_ID}::prediction_pool::purchase_token`,
           arguments: [
             tx.object(vaultId),
-            tx.object(NEXT_GLOBAL_REGISTRY!),
+            tx.object(USER_REGISTRY!),
             tx.pure.bool(isBull),
             tx.object(NEXT_SUPRA_ORACLE_HOLDER as string),
             tx.splitCoins(tx.gas, [tx.pure.u64(amountInMist)]),

@@ -131,7 +131,7 @@ export default function CreateFatePoolForm() {
     const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
     const NEXT_SUPRA_ORACLE_HOLDER =
       PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
-    const NEXT_GLOBAL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
+    const NEXT_PUBLIC_POOL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY;
     if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
       toast.error(
         "Missing environment variables: PACKAGE_ID or SUPRA_ORACLE_HOLDER"
@@ -173,7 +173,7 @@ export default function CreateFatePoolForm() {
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
-          tx.object(NEXT_GLOBAL_REGISTRY!),
+          tx.object(NEXT_PUBLIC_POOL_REGISTRY!),
           tx.pure.vector("u8", strToU8Vec(poolName)),
           tx.pure.vector("u8", strToU8Vec(poolDescription)),
           tx.pure.u32(pairId),
