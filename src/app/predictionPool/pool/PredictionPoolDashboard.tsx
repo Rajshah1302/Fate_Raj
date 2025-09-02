@@ -69,10 +69,10 @@ export default function PredictionPoolDashboard() {
         bear_reserve: parseInt(pool.bear_reserve) || 0,
         bull_supply: parseInt(pool.bull_token?.fields?.total_supply) || 0,
         bear_supply: parseInt(pool.bear_token?.fields?.total_supply) || 0,
-        vault_creator_fee: parseInt(pool.pool_creator_fee) || 0,
-        protocol_fee: parseInt(pool.protocol_fee) || 0,
-        mint_fee: parseInt(pool.mint_fee!) || 0,
-        burn_fee: parseInt(pool.burn_fee!) || 0,
+        vault_creator_fee: parseInt(pool.pool_creator_fee)/1000 || 0,
+        protocol_fee: parseInt(pool.protocol_fee)/1000 || 0,
+        mint_fee: parseInt(pool.mint_fee!)/1000 || 0,
+        burn_fee: parseInt(pool.burn_fee!)/1000 || 0,
       }
     : {
         id: "",
