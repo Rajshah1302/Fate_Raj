@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  JSXElementConstructor,
+  Key,
+  ReactElement,
+  ReactNode,
+  ReactPortal,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useQuery, useQueries, UseQueryResult } from "@tanstack/react-query";
 import {
   Search,
   TrendingUp,
@@ -53,14 +63,12 @@ interface FilterState {
 
 const ExploreFatePools = () => {
   const stickyRef = useRef<HTMLElement | null>(null);
-  const [pools, setPools] = useState<EnhancedPool[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const { account } = useWallet();
   const accountAddress = account?.address || "";
   const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
-  const POOL_REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY; // Updated to use pool registry
+  const POOL_REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY;
   const [filters, setFilters] = useState<FilterState>({
     asset: "",
     minLiquidity: 0,
@@ -94,263 +102,282 @@ const ExploreFatePools = () => {
     return "0x" + arr.map((b) => b.toString(16).padStart(2, "0")).join("");
   };
 
-  useEffect(() => {
-    const fetchPools = async () => {
-      if (!PACKAGE_ID || !POOL_REGISTRY_ID) {
-        console.warn("Missing PACKAGE_ID or POOL_REGISTRY_ID");
-        toast.error("Missing PACKAGE_ID or POOL_REGISTRY_ID");
-        setLoading(false);
-        return;
-      }
+  // Query function to fetch pool IDs from registry
+  const fetchPoolsFromRegistry = async (): Promise<string[]> => {
+    if (!PACKAGE_ID || !POOL_REGISTRY_ID) {
+      throw new Error("Missing PACKAGE_ID or POOL_REGISTRY_ID");
+    }
 
-      try {
-        setLoading(true);
+    try {
+      const client = new SuiClient({
+        url: "https://fullnode.testnet.sui.io:443",
+      });
 
-        const poolIds = await fetchPoolsFromRegistry();
+      const registryObject = await client.getObject({
+        id: POOL_REGISTRY_ID,
+        options: { showContent: true },
+      });
 
-        if (poolIds.length === 0) {
-          console.warn("No pools found in registry");
-          setPools([]);
-          return;
-        }
-
-        const enhancedPools = await Promise.allSettled(
-          poolIds.map((poolId) => enhancePoolData(poolId))
-        );
-
-        const validPools = enhancedPools
-          .filter(
-            (result): result is PromiseFulfilledResult<EnhancedPool> =>
-              result.status === "fulfilled" && result.value !== null
-          )
-          .map((result) => result.value)
-          .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-
-        setPools(validPools);
-      } catch (err) {
-        console.error("Error fetching pools:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchPoolsFromRegistry = async (): Promise<string[]> => {
-      try {
-        const client = new SuiClient({
-          url: "https://fullnode.testnet.sui.io:443",
-        });
-
-        const registryObject = await client.getObject({
-          id: POOL_REGISTRY_ID,
-          options: { showContent: true },
-        });
-
-        if (
-          !registryObject.data?.content ||
-          !("fields" in registryObject.data.content)
-        ) {
-          console.warn("Could not fetch registry object");
-          return [];
-        }
-
-        const registryFields = (registryObject.data.content as any).fields;
-        const totalPools = parseInt(registryFields.total_pools || "0", 10);
-        const poolsPerPage = parseInt(
-          registryFields.pools_per_page || "50",
-          10
-        );
-
-        if (totalPools === 0) {
-          console.log("Registry reports 0 pools");
-          return [];
-        }
-
-        // Calculate total pages
-        const totalPages = Math.ceil(totalPools / poolsPerPage);
-
-        console.log(
-          `Registry has ${totalPools} pools across ${totalPages} pages (${poolsPerPage} pools per page)`
-        );
-
-        const allPoolIds: string[] = [];
-
-        // Fetch pools from each page
-        for (let pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-          try {
-            const tx = new Transaction();
-            tx.moveCall({
-              target: `${PACKAGE_ID}::pool_registry::get_pools_from_page`,
-              arguments: [tx.object(POOL_REGISTRY_ID), tx.pure.u32(pageNumber)],
-            });
-
-            const pageResponse = await client.devInspectTransactionBlock({
-              transactionBlock: tx,
-              sender: accountAddress,
-            });
-
-            const pageResult = pageResponse.results?.[0]?.returnValues?.[0];
-            if (!pageResult) {
-              console.warn(`No result for page ${pageNumber}`);
-              continue;
-            }
-
-            const poolsInPage = bcs
-              .vector(bcs.Address)
-              .parse(Uint8Array.from(pageResult[0]));
-
-            allPoolIds.push(...poolsInPage);
-
-            console.log(
-              `Page ${pageNumber}: found ${poolsInPage.length} pools`
-            );
-          } catch (pageErr) {
-            console.warn(`Error fetching page ${pageNumber}:`, pageErr);
-          }
-        }
-
-        console.log(`Total pools collected: ${allPoolIds.length}`);
-        return allPoolIds;
-      } catch (err) {
-        console.error("Error fetching pools from registry:", err);
+      if (
+        !registryObject.data?.content ||
+        !("fields" in registryObject.data.content)
+      ) {
+        console.warn("Could not fetch registry object");
         return [];
       }
-    };
 
-    const enhancePoolData = async (
-      poolId: string
-    ): Promise<EnhancedPool | null> => {
-      try {
-        const response = await client.getObject({
-          id: poolId,
-          options: { showContent: true },
-        });
+      const registryFields = (registryObject.data.content as any).fields;
+      const totalPools = parseInt(registryFields.total_pools || "0", 10);
+      const poolsPerPage = parseInt(registryFields.pools_per_page || "50", 10);
 
-        if (!response.data?.content || !("fields" in response.data.content)) {
-          return null;
+      if (totalPools === 0) {
+        console.log("Registry reports 0 pools");
+        return [];
+      }
+
+      const totalPages = Math.ceil(totalPools / poolsPerPage);
+      console.log(
+        `Registry has ${totalPools} pools across ${totalPages} pages (${poolsPerPage} pools per page)`
+      );
+
+      const allPoolIds: string[] = [];
+
+      // Fetch pools from each page
+      for (let pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+        try {
+          const tx = new Transaction();
+          tx.moveCall({
+            target: `${PACKAGE_ID}::pool_registry::get_pools_from_page`,
+            arguments: [tx.object(POOL_REGISTRY_ID), tx.pure.u32(pageNumber)],
+          });
+
+          const pageResponse = await client.devInspectTransactionBlock({
+            transactionBlock: tx,
+            sender: accountAddress,
+          });
+
+          const pageResult = pageResponse.results?.[0]?.returnValues?.[0];
+          if (!pageResult) {
+            console.warn(`No result for page ${pageNumber}`);
+            continue;
+          }
+
+          const poolsInPage = bcs
+            .vector(bcs.Address)
+            .parse(Uint8Array.from(pageResult[0]));
+
+          allPoolIds.push(...poolsInPage);
+          console.log(`Page ${pageNumber}: found ${poolsInPage.length} pools`);
+        } catch (pageErr) {
+          console.warn(`Error fetching page ${pageNumber}:`, pageErr);
         }
+      }
 
-        const fields = (response.data.content as any).fields;
-        console.log("Enhancing pool:", poolId, JSON.stringify(fields));
+      console.log(`Total pools collected: ${allPoolIds.length}`);
+      return allPoolIds;
+    } catch (err) {
+      console.error("Error fetching pools from registry:", err);
+      throw err;
+    }
+  };
 
-        const name = fields.name || `Pool ${poolId.slice(-8)}`;
-        const description = fields.description || "";
-        const currentPrice = toIntSafe(fields.current_price, 0);
-        const assetAddress =
-          fields.pair_id || bytesToHex0x(fields.asset_id) || "";
-        const creator = fields.pool_creator || "";
+  // Query function to enhance individual pool data
+  const enhancePoolData = async (
+    poolId: string
+  ): Promise<EnhancedPool | null> => {
+    try {
+      const response = await client.getObject({
+        id: poolId,
+        options: { showContent: true },
+      });
 
-        // Calculate reserves and fees
-        const bullReserve = toIntSafe(fields.bull_reserve, 0);
-        const bearReserve = toIntSafe(fields.bear_reserve, 0);
-        const totalLiquidity = bullReserve + bearReserve;
-
-        const protocolFee = toIntSafe(fields.protocol_fee, 0);
-        const mintFee = toIntSafe(fields.mint_fee, 0);
-        const burnFee = toIntSafe(fields.burn_fee, 0);
-        const creatorFee = toIntSafe(fields.pool_creator_fee, 0);
-        const totalFees = protocolFee + mintFee + burnFee + creatorFee;
-
-        // Calculate percentages
-        const bullPercentage =
-          totalLiquidity > 0 ? (bullReserve / totalLiquidity) * 100 : 50;
-        const bearPercentage = 100 - bullPercentage;
-
-        // Get asset info
-        const assetInfo = ASSET_CONFIG[assetAddress] || {
-          name: "Unknown",
-          symbol: "UNK",
-        };
-
-        // Create token objects (simplified)
-        const createToken = (
-          tokenFields: any,
-          type: "BULL" | "BEAR",
-          reserve: number
-        ): Token | undefined => {
-          if (!tokenFields?.fields) return undefined;
-
-          const f = tokenFields.fields;
-          return {
-            id: f.id?.id || "",
-            name: f.name || `${type} Token`,
-            symbol: f.symbol || type,
-            balance: toIntSafe(f.total_supply, 0),
-            price: 1,
-            vault_creator: creator,
-            vault_fee: 0,
-            vault_creator_fee: 0,
-            treasury_fee: 0,
-            asset_balance: reserve,
-            supply: toIntSafe(f.total_supply, 0),
-            prediction_pool: poolId,
-            other_token: "",
-          };
-        };
-
-        const enhancedPool: EnhancedPool = {
-          id: poolId,
-          name,
-          description,
-          current_price: currentPrice,
-          asset_id: assetAddress,
-          creator,
-          bullPercentage,
-          bearPercentage,
-          bull_reserve: bullReserve,
-          bear_reserve: bearReserve,
-          bullToken: createToken(fields.bull_token, "BULL", bullReserve),
-          bearToken: createToken(fields.bear_token, "BEAR", bearReserve),
-          created_at: Date.now(),
-          total_fees: totalFees,
-          asset_name: assetInfo.name,
-          total_liquidity: totalLiquidity,
-        };
-
-        return enhancedPool;
-      } catch (err) {
-        console.error(`Error enhancing pool ${poolId}:`, err);
+      if (!response.data?.content || !("fields" in response.data.content)) {
         return null;
       }
-    };
 
-    fetchPools();
-  }, [PACKAGE_ID, POOL_REGISTRY_ID, accountAddress, client]);
+      const fields = (response.data.content as any).fields;
+      console.log("Enhancing pool:", poolId, JSON.stringify(fields));
+
+      const name = fields.name || `Pool ${poolId.slice(-8)}`;
+      const description = fields.description || "";
+      const currentPrice = toIntSafe(fields.current_price, 0);
+      const assetAddress =
+        fields.pair_id || bytesToHex0x(fields.asset_id) || "";
+      const creator = fields.pool_creator || "";
+
+      // Calculate reserves and fees
+      const bullReserve = toIntSafe(fields.bull_reserve, 0);
+      const bearReserve = toIntSafe(fields.bear_reserve, 0);
+      const totalLiquidity = bullReserve + bearReserve;
+
+      const protocolFee = toIntSafe(fields.protocol_fee, 0);
+      const mintFee = toIntSafe(fields.mint_fee, 0);
+      const burnFee = toIntSafe(fields.burn_fee, 0);
+      const creatorFee = toIntSafe(fields.pool_creator_fee, 0);
+      const totalFees = protocolFee + mintFee + burnFee + creatorFee;
+
+      // Calculate percentages
+      const bullPercentage =
+        totalLiquidity > 0 ? (bullReserve / totalLiquidity) * 100 : 50;
+      const bearPercentage = 100 - bullPercentage;
+
+      // Get asset info
+      const assetInfo = ASSET_CONFIG[assetAddress] || {
+        name: "Unknown",
+        symbol: "UNK",
+      };
+
+      // Create token objects (simplified)
+      const createToken = (
+        tokenFields: any,
+        type: "BULL" | "BEAR",
+        reserve: number
+      ): Token | undefined => {
+        if (!tokenFields?.fields) return undefined;
+
+        const f = tokenFields.fields;
+        return {
+          id: f.id?.id || "",
+          name: f.name || `${type} Token`,
+          symbol: f.symbol || type,
+          balance: toIntSafe(f.total_supply, 0),
+          price: 1,
+          vault_creator: creator,
+          vault_fee: 0,
+          vault_creator_fee: 0,
+          treasury_fee: 0,
+          asset_balance: reserve,
+          supply: toIntSafe(f.total_supply, 0),
+          prediction_pool: poolId,
+          other_token: "",
+        };
+      };
+
+      const enhancedPool: EnhancedPool = {
+        id: poolId,
+        name,
+        description,
+        current_price: currentPrice,
+        asset_id: assetAddress,
+        creator,
+        bullPercentage,
+        bearPercentage,
+        bull_reserve: bullReserve,
+        bear_reserve: bearReserve,
+        bullToken: createToken(fields.bull_token, "BULL", bullReserve),
+        bearToken: createToken(fields.bear_token, "BEAR", bearReserve),
+        created_at: Date.now(),
+        total_fees: totalFees,
+        asset_name: assetInfo.name,
+        total_liquidity: totalLiquidity,
+      };
+
+      return enhancedPool;
+    } catch (err) {
+      console.error(`Error enhancing pool ${poolId}:`, err);
+      return null;
+    }
+  };
+
+  // React Query: Fetch pool IDs
+  const {
+    data: poolIds = [],
+    isLoading: poolIdsLoading,
+    error: poolIdsError,
+  } = useQuery({
+    queryKey: ["poolIds", PACKAGE_ID, POOL_REGISTRY_ID, accountAddress],
+    queryFn: fetchPoolsFromRegistry,
+    enabled: !!(PACKAGE_ID && POOL_REGISTRY_ID && accountAddress),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+
+  // React Query: Fetch individual pool data
+  const poolQueries = useQueries({
+    queries: poolIds.map((poolId: any) => ({
+      queryKey: ["pool", poolId],
+      queryFn: () => enhancePoolData(poolId),
+      enabled: !!poolId,
+      staleTime: 3 * 60 * 1000, // 3 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    })),
+  });
+
+  // Process pool queries results
+  const pools = useMemo(() => {
+    const validPools: EnhancedPool[] = poolQueries
+      .filter(
+        (query): query is UseQueryResult<EnhancedPool, Error> =>
+          query.data !== null && query.data !== undefined
+      )
+      .map((query) => query.data!)
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+    return validPools;
+  }, [poolQueries]);
+
+  // Check loading state
+  const isLoading =
+    poolIdsLoading ||
+    poolQueries.some((query: { isLoading: any }) => query.isLoading);
+
+  // Handle errors
+  if (poolIdsError) {
+    console.error("Error fetching pool IDs:", poolIdsError);
+    toast.error("Error fetching pools");
+  }
 
   const filteredPools = useMemo(() => {
-    return pools.filter((pool) => {
-      const matchesSearch =
-        pool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pool.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pool.asset_name.toLowerCase().includes(searchQuery.toLowerCase());
+    return pools.filter(
+      (pool: {
+        name: string;
+        description: string;
+        creator: string;
+        asset_name: string;
+        asset_id: string;
+        total_liquidity: number;
+        total_fees: number;
+      }) => {
+        const matchesSearch =
+          pool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          pool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          pool.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          pool.asset_name.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesAsset = !filters.asset || pool?.asset_id === filters.asset;
-      const matchesCreator =
-        !filters.creator ||
-        pool.creator.toLowerCase().includes(filters.creator.toLowerCase());
-      const matchesLiquidity =
-        pool.total_liquidity >= filters.minLiquidity &&
-        (filters.maxLiquidity === 0 ||
-          pool.total_liquidity <= filters.maxLiquidity);
-      const matchesFees =
-        pool.total_fees >= filters.minFees &&
-        (filters.maxFees === 0 || pool.total_fees <= filters.maxFees);
+        const matchesAsset = !filters.asset || pool?.asset_id === filters.asset;
+        const matchesCreator =
+          !filters.creator ||
+          pool.creator.toLowerCase().includes(filters.creator.toLowerCase());
+        const matchesLiquidity =
+          pool.total_liquidity >= filters.minLiquidity &&
+          (filters.maxLiquidity === 0 ||
+            pool.total_liquidity <= filters.maxLiquidity);
+        const matchesFees =
+          pool.total_fees >= filters.minFees &&
+          (filters.maxFees === 0 || pool.total_fees <= filters.maxFees);
 
-      return (
-        matchesSearch &&
-        matchesAsset &&
-        matchesCreator &&
-        matchesLiquidity &&
-        matchesFees
-      );
-    });
+        return (
+          matchesSearch &&
+          matchesAsset &&
+          matchesCreator &&
+          matchesLiquidity &&
+          matchesFees
+        );
+      }
+    );
   }, [pools, searchQuery, filters]);
 
   const availableAssets = useMemo(() => {
-    const assets = new Set(pools.map((pool) => pool.asset_id));
+    const assets = new Set(
+      pools.map((pool: { asset_id: any }) => pool.asset_id)
+    );
     return Array.from(assets).map((address) => ({
       address,
-      ...(ASSET_CONFIG[address] || { name: "Unknown", symbol: "UNK" }),
+      ...(ASSET_CONFIG[Number(address)] || { name: "Unknown", symbol: "UNK" }),
     }));
   }, [pools]);
 
@@ -469,8 +496,8 @@ const ExploreFatePools = () => {
                           <SelectItem value="all">All Price</SelectItem>
                           {availableAssets.map((asset) => (
                             <SelectItem
-                              key={asset.address}
-                              value={asset.address}
+                              key={Number(asset.address)}
+                              value={String(asset.address)}
                             >
                               {asset.name}
                             </SelectItem>
@@ -573,10 +600,10 @@ const ExploreFatePools = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                  {loading ? (
+                  {isLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        {Array.from({ length: 6 }).map((_, j) => (
+                        {Array.from({ length: 4 }).map((_, j) => (
                           <td key={j} className="px-6 py-4">
                             <div className="h-4 bg-neutral-300 dark:bg-neutral-700 rounded w-20"></div>
                           </td>
@@ -584,69 +611,133 @@ const ExploreFatePools = () => {
                       </tr>
                     ))
                   ) : filteredPools.length > 0 ? (
-                    filteredPools.map((pool) => (
-                      <tr
-                        key={pool.id}
-                        className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
-                        onClick={() =>
-                          router.push(
-                            `/predictionPool/pool?id=${encodeURIComponent(
-                              pool.id
-                            )}`
-                          )
-                        }
-                      >
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="font-medium text-black dark:text-white">
-                              {pool.name}
+                    filteredPools.map(
+                      (pool: {
+                        id: boolean | Key | null | undefined;
+                        name:
+                          | string
+                          | number
+                          | bigint
+                          | boolean
+                          | ReactElement<
+                              unknown,
+                              string | JSXElementConstructor<any>
+                            >
+                          | Iterable<ReactNode>
+                          | ReactPortal
+                          | Promise<
+                              | string
+                              | number
+                              | bigint
+                              | boolean
+                              | ReactPortal
+                              | ReactElement<
+                                  unknown,
+                                  string | JSXElementConstructor<any>
+                                >
+                              | Iterable<ReactNode>
+                              | null
+                              | undefined
+                            >
+                          | null
+                          | undefined;
+                        description: any;
+                        asset_name:
+                          | string
+                          | number
+                          | bigint
+                          | boolean
+                          | ReactElement<
+                              unknown,
+                              string | JSXElementConstructor<any>
+                            >
+                          | Iterable<ReactNode>
+                          | ReactPortal
+                          | Promise<
+                              | string
+                              | number
+                              | bigint
+                              | boolean
+                              | ReactPortal
+                              | ReactElement<
+                                  unknown,
+                                  string | JSXElementConstructor<any>
+                                >
+                              | Iterable<ReactNode>
+                              | null
+                              | undefined
+                            >
+                          | null
+                          | undefined;
+                        total_liquidity: number;
+                        bull_reserve: number;
+                        bear_reserve: number;
+                        bullPercentage: number;
+                        bearPercentage: number;
+                      }) => (
+                        <tr
+                          key={Number(pool.id)}
+                          className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
+                          onClick={() =>
+                            router.push(
+                              `/predictionPool/pool?id=${encodeURIComponent(
+                                String(pool.id)
+                              )}`
+                            )
+                          }
+                        >
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="font-medium text-black dark:text-white">
+                                {pool.name}
+                              </div>
+                              <div className="text-sm text-neutral-600 dark:text-neutral-400 truncate max-w-xs">
+                                {pool.description || "No description"}
+                              </div>
                             </div>
-                            <div className="text-sm text-neutral-600 dark:text-neutral-400 truncate max-w-xs">
-                              {pool.description || "No description"}
-                            </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {pool.asset_name}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="font-medium">
-                            {formatNumber(pool.total_liquidity)}
-                          </div>
-                          <div className="text-xs text-neutral-500">
-                            BULL: {formatNumber(pool.bull_reserve)} | BEAR:{" "}
-                            {formatNumber(pool.bear_reserve)}
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="w-4 h-4 text-black dark:text-gray-600" />
-                              <span className="text-sm font-medium text-black dark:text-gray-600">
-                                {pool.bullPercentage.toFixed(1)}%
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {pool.asset_name}
                               </span>
                             </div>
-                            <span className="text-neutral-400">/</span>
-                            <div className="flex items-center gap-1">
-                              <TrendingDown className="w-4 h-4 text-gray-400 dark:text-white" />
-                              <span className="text-sm font-medium text-gray-400 dark:text-white">
-                                {pool.bearPercentage.toFixed(1)}%
-                              </span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="font-medium">
+                              {formatNumber(pool.total_liquidity)}
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                            <div className="text-xs text-neutral-500">
+                              BULL: {formatNumber(pool.bull_reserve)} | BEAR:{" "}
+                              {formatNumber(pool.bear_reserve)}
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4 text-black dark:text-gray-600" />
+                                <span className="text-sm font-medium text-black dark:text-gray-600">
+                                  {pool.bullPercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <span className="text-neutral-400">/</span>
+                              <div className="flex items-center gap-1">
+                                <TrendingDown className="w-4 h-4 text-gray-400 dark:text-white" />
+                                <span className="text-sm font-medium text-gray-400 dark:text-white">
+                                  {pool.bearPercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={4} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className="text-lg text-neutral-600 dark:text-neutral-400">
                             {searchQuery ||

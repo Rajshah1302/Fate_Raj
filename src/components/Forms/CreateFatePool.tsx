@@ -22,6 +22,7 @@ import { useWallet } from "@suiet/wallet-kit";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
+import { useQueryClient } from "@tanstack/react-query";
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 export default function CreateFatePoolForm() {
@@ -30,6 +31,7 @@ export default function CreateFatePoolForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const queryClient = useQueryClient();
 
   const stepTitles = ["Pool", "Tokens", "Fees", "Review"];
   const totalSteps = 4;
@@ -219,6 +221,7 @@ export default function CreateFatePoolForm() {
 
       toast.success("Prediction Pool created successfully!");
       router.push("/predictionPool");
+      queryClient.invalidateQueries({ queryKey: ["poolIds"] });
     } catch (err: any) {
       console.error("Transaction error:", err);
       toast.error(`Transaction failed: ${err?.message ?? String(err)}`);
