@@ -60,24 +60,12 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             step="0.01"
             min="0"
             max="10"
-            value={
-              formData.protocolFee !== "" && formData.protocolFee != null
-                ? String(Number(formData.protocolFee) / 1000)
-                : ""
-            }
-            onChange={(e) =>
-              updateFormData({
-                protocolFee:
-                  e.target.value === ""
-                    ? ""
-                    : String(Number(e.target.value) * 1000),
-              })
-            }
+            value={formData.protocolFee}
+            onChange={(e) => updateFormData({ protocolFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
               errors.creatorUnstakeFee ? "border-red-500" : ""
             }`}
           />
-
           {errors.creatorUnstakeFee && (
             <p className="text-red-500 text-sm">{errors.creatorUnstakeFee}</p>
           )}
@@ -96,8 +84,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
                 </TooltipTrigger>
                 <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
                   <p className="w-64 text-sm">
-                    Percentage of fees charged and transfered to opposite side
-                    when minting new tokens.
+                    Percentage of fees charged and transfered to opposite side when minting new tokens.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -109,24 +96,12 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             step="0.01"
             min="0"
             max="10"
-            value={
-              formData.mintFee !== "" && formData.mintFee != null
-                ? String(Number(formData.mintFee) / 1000)
-                : ""
-            }
-            onChange={(e) =>
-              updateFormData({
-                mintFee:
-                  e.target.value === ""
-                    ? ""
-                    : String(Number(e.target.value) * 1000),
-              })
-            }
+            value={formData.mintFee}
+            onChange={(e) => updateFormData({ mintFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
               errors.stakeFee ? "border-red-500" : ""
             }`}
           />
-
           {errors.stakeFee && (
             <p className="text-red-500 text-sm">{errors.stakeFee}</p>
           )}
@@ -144,8 +119,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
                 </TooltipTrigger>
                 <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
                   <p className="w-64 text-sm">
-                    Percentage of fees charged and transfered to opposite side
-                    when buring tokens.
+                    Percentage of fees charged and transfered to opposite side when buring tokens.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -157,24 +131,12 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             step="0.01"
             min="0"
             max="10"
-            value={
-              formData.burnFee !== "" && formData.burnFee != null
-                ? String(Number(formData.burnFee) / 1000)
-                : ""
-            }
-            onChange={(e) =>
-              updateFormData({
-                burnFee:
-                  e.target.value === ""
-                    ? ""
-                    : String(Number(e.target.value) * 1000),
-              })
-            }
+            value={formData.burnFee}
+            onChange={(e) => updateFormData({ burnFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
               errors.stakeFee ? "border-red-500" : ""
             }`}
           />
-
           {errors.stakeFee && (
             <p className="text-red-500 text-sm">{errors.stakeFee}</p>
           )}
@@ -205,24 +167,12 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             step="0.01"
             min="0"
             max="10"
-            value={
-              formData.poolCreatorFee !== "" && formData.poolCreatorFee != null
-                ? String(Number(formData.poolCreatorFee) / 1000)
-                : ""
-            }
-            onChange={(e) =>
-              updateFormData({
-                poolCreatorFee:
-                  e.target.value === ""
-                    ? ""
-                    : String(Number(e.target.value) * 1000),
-              })
-            }
+            value={formData.poolCreatorFee}
+            onChange={(e) => updateFormData({ poolCreatorFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
               errors.creatorStakeFee ? "border-red-500" : ""
             }`}
           />
-
           {errors.creatorStakeFee && (
             <p className="text-red-500 text-sm">{errors.creatorStakeFee}</p>
           )}

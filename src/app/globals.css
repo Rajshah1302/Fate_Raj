@@ -79,11 +79,11 @@ body {
   }
 
   .animate-marquee-left {
-    animation: marquee-left 20s linear infinite;
+    animation: marquee-left 40s linear infinite;
   }
 
   .animate-marquee-right {
-    animation: marquee-right 20s linear infinite;
+    animation: marquee-right 40s linear infinite;
   }
 }
 

@@ -57,6 +57,7 @@ export default function PredictionPoolDashboard() {
 
   const formatValue = (value: number) =>
     `${formatNumber(safeNumber(value) / 1e9, 3)} SUI`;
+  const FEE_DENOMINATOR = 100;
 
   const poolData = pool
     ? {
@@ -69,10 +70,11 @@ export default function PredictionPoolDashboard() {
         bear_reserve: parseInt(pool.bear_reserve) || 0,
         bull_supply: parseInt(pool.bull_token?.fields?.total_supply) || 0,
         bear_supply: parseInt(pool.bear_token?.fields?.total_supply) || 0,
-        vault_creator_fee: parseInt(pool.pool_creator_fee)/1000 || 0,
-        protocol_fee: parseInt(pool.protocol_fee)/1000 || 0,
-        mint_fee: parseInt(pool.mint_fee!)/1000 || 0,
-        burn_fee: parseInt(pool.burn_fee!)/1000 || 0,
+        vault_creator_fee:
+          parseInt(pool.pool_creator_fee) / FEE_DENOMINATOR || 0,
+        protocol_fee: parseInt(pool.protocol_fee) / FEE_DENOMINATOR || 0,
+        mint_fee: parseInt(pool.mint_fee!) / FEE_DENOMINATOR || 0,
+        burn_fee: parseInt(pool.burn_fee!) / FEE_DENOMINATOR || 0,
       }
     : {
         id: "",
@@ -149,11 +151,11 @@ export default function PredictionPoolDashboard() {
 
     const bullPrice = safeNumber(
       poolData.bull_reserve / 1e9 / (poolData.bull_supply / 1e9),
-      0
+      1
     );
     const bearPrice = safeNumber(
       poolData.bear_reserve / 1e9 / (poolData.bear_supply / 1e9),
-      0
+      1
     );
 
     const userBullTokens = userBalances.bull_tokens / 1e9;
@@ -330,13 +332,14 @@ export default function PredictionPoolDashboard() {
                       className="text-lg font-bold transition-all duration-300"
                       style={{
                         color:
-                          calculations.bullPercentage > calculations.bearPercentage
+                          calculations.bullPercentage >
+                          calculations.bearPercentage
                             ? theme === "dark"
-                              ? "#111" 
-                              : "#111" 
+                              ? "#111"
+                              : "#111"
                             : theme === "dark"
-                            ? "#fff":"gray-500"
-                            
+                            ? "#fff"
+                            : "gray-500",
                       }}
                     >
                       {formatValue(calculations.totalReserves)}
@@ -358,7 +361,8 @@ export default function PredictionPoolDashboard() {
                         className="h-2 transition-all duration-500 ease-in-out"
                         style={{
                           width: `${calculations.bearPercentage}%`,
-                          backgroundColor: theme === "dark" ? "gray-500" : "#fff",
+                          backgroundColor:
+                            theme === "dark" ? "gray-500" : "#fff",
                           borderLeft:
                             theme === "dark"
                               ? "1px solid #888"

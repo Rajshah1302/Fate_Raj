@@ -110,7 +110,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 Protocol Fee:
               </div>
               <span className="font-medium text-black dark:text-white">
-                {Number(formData.protocolFee)/1000|| "0"}%
+                {Number(formData.protocolFee)|| "0"}%
               </span>
             </div>
             <div className="flex justify-between">
@@ -118,7 +118,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 Mint Fee:
               </span>
               <span className="font-medium text-black dark:text-white">
-                {Number(formData.mintFee)/1000 || "0"}%
+                {Number(formData.mintFee) || "0"}%
               </span>
             </div>
             <div className="flex justify-between">
@@ -126,7 +126,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 Burn Fee:
               </span>
               <span className="font-medium text-black dark:text-white">
-                {Number(formData.burnFee)/1000 || "0"}%
+                {Number(formData.burnFee) || "0"}%
               </span>
             </div>
             <div className="flex justify-between">
@@ -134,7 +134,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 Pool Creator Fee:
               </span>
               <span className="font-medium text-black dark:text-white">
-                {Number(formData.poolCreatorFee)/1000 || "0"}%
+                {Number(formData.poolCreatorFee) || "0"}%
               </span>
             </div>
             <div className="grid grid-cols-1 gap-2 text-sm">
