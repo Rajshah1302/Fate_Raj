@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, TrendingUp, TrendingDown, Filter, X, Wallet } from "lucide-react";
+import {
+  Search,
+  TrendingUp,
+  TrendingDown,
+  Filter,
+  X,
+  Wallet,
+} from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { SuiClient } from "@mysten/sui/client";
@@ -53,7 +60,7 @@ const ExploreFatePools = () => {
   const { account } = useWallet();
   const accountAddress = account?.address || "";
   const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
-  const REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
+  const POOL_REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY; // Updated to use pool registry
   const [filters, setFilters] = useState<FilterState>({
     asset: "",
     minLiquidity: 0,
@@ -89,13 +96,9 @@ const ExploreFatePools = () => {
 
   useEffect(() => {
     const fetchPools = async () => {
-      if (!PACKAGE_ID || !REGISTRY_ID) {
-        console.warn(
-          "Missing PACKAGE_ID or REGISTRY_ID"
-        );
-        toast.error(
-          "Missing PACKAGE_ID or REGISTRY_ID"
-        );
+      if (!PACKAGE_ID || !POOL_REGISTRY_ID) {
+        console.warn("Missing PACKAGE_ID or POOL_REGISTRY_ID");
+        toast.error("Missing PACKAGE_ID or POOL_REGISTRY_ID");
         setLoading(false);
         return;
       }
@@ -137,24 +140,76 @@ const ExploreFatePools = () => {
           url: "https://fullnode.testnet.sui.io:443",
         });
 
-        const tx = new Transaction();
-        tx.moveCall({
-          target: `${PACKAGE_ID}::registry::get_all_pools`,
-          arguments: [tx.object(REGISTRY_ID)],
+        const registryObject = await client.getObject({
+          id: POOL_REGISTRY_ID,
+          options: { showContent: true },
         });
 
-        const response = await client.devInspectTransactionBlock({
-          transactionBlock: tx,
-          sender: accountAddress!,
-        });
-        console.log("Dev inspect registry response:", JSON.stringify(response));
-        const returnValues = response.results?.[0]?.returnValues?.[0];
-        if (!returnValues || !Array.isArray(returnValues)) return [];
+        if (
+          !registryObject.data?.content ||
+          !("fields" in registryObject.data.content)
+        ) {
+          console.warn("Could not fetch registry object");
+          return [];
+        }
 
-        const byteArray = Uint8Array.from(returnValues[0]);
-        const poolIds = bcs.vector(bcs.Address).parse(byteArray);
+        const registryFields = (registryObject.data.content as any).fields;
+        const totalPools = parseInt(registryFields.total_pools || "0", 10);
+        const poolsPerPage = parseInt(
+          registryFields.pools_per_page || "50",
+          10
+        );
 
-        return poolIds;
+        if (totalPools === 0) {
+          console.log("Registry reports 0 pools");
+          return [];
+        }
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalPools / poolsPerPage);
+
+        console.log(
+          `Registry has ${totalPools} pools across ${totalPages} pages (${poolsPerPage} pools per page)`
+        );
+
+        const allPoolIds: string[] = [];
+
+        // Fetch pools from each page
+        for (let pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+          try {
+            const tx = new Transaction();
+            tx.moveCall({
+              target: `${PACKAGE_ID}::pool_registry::get_pools_from_page`,
+              arguments: [tx.object(POOL_REGISTRY_ID), tx.pure.u32(pageNumber)],
+            });
+
+            const pageResponse = await client.devInspectTransactionBlock({
+              transactionBlock: tx,
+              sender: accountAddress,
+            });
+
+            const pageResult = pageResponse.results?.[0]?.returnValues?.[0];
+            if (!pageResult) {
+              console.warn(`No result for page ${pageNumber}`);
+              continue;
+            }
+
+            const poolsInPage = bcs
+              .vector(bcs.Address)
+              .parse(Uint8Array.from(pageResult[0]));
+
+            allPoolIds.push(...poolsInPage);
+
+            console.log(
+              `Page ${pageNumber}: found ${poolsInPage.length} pools`
+            );
+          } catch (pageErr) {
+            console.warn(`Error fetching page ${pageNumber}:`, pageErr);
+          }
+        }
+
+        console.log(`Total pools collected: ${allPoolIds.length}`);
+        return allPoolIds;
       } catch (err) {
         console.error("Error fetching pools from registry:", err);
         return [];
@@ -245,7 +300,7 @@ const ExploreFatePools = () => {
           bear_reserve: bearReserve,
           bullToken: createToken(fields.bull_token, "BULL", bullReserve),
           bearToken: createToken(fields.bear_token, "BEAR", bearReserve),
-          created_at: Date.now(), 
+          created_at: Date.now(),
           total_fees: totalFees,
           asset_name: assetInfo.name,
           total_liquidity: totalLiquidity,
@@ -259,7 +314,7 @@ const ExploreFatePools = () => {
     };
 
     fetchPools();
-  }, [PACKAGE_ID, REGISTRY_ID, accountAddress, client]);
+  }, [PACKAGE_ID, POOL_REGISTRY_ID, accountAddress, client]);
 
   const filteredPools = useMemo(() => {
     return pools.filter((pool) => {
@@ -311,27 +366,28 @@ const ExploreFatePools = () => {
       maxError: null,
     });
   };
+
   if (!account?.address) {
-      return (
-        <>
-          <Navbar />
-          <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
-            <Card className="p-8 text-center max-w-md border-neutral-200/60 dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
-              <div className="mb-6">
-                <Wallet className="h-12 w-12 mx-auto text-blue-500 dark:text-blue-400 mb-4" />
-                <CardTitle className="text-xl mb-2 text-neutral-900 dark:text-neutral-100">
-                  Connect Your Wallet
-                </CardTitle>
-                <p className="text-neutral-600 dark:text-neutral-400">
-                  Connect your wallet to view and explore prediction pools.
-                </p>
-              </div>
-            </Card>
-          </div>
-          <Footer />
-        </>
-      );
-    }
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
+          <Card className="p-8 text-center max-w-md border-neutral-200/60 dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
+            <div className="mb-6">
+              <Wallet className="h-12 w-12 mx-auto text-blue-500 dark:text-blue-400 mb-4" />
+              <CardTitle className="text-xl mb-2 text-neutral-900 dark:text-neutral-100">
+                Connect Your Wallet
+              </CardTitle>
+              <p className="text-neutral-600 dark:text-neutral-400">
+                Connect your wallet to view and explore prediction pools.
+              </p>
+            </div>
+          </Card>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>

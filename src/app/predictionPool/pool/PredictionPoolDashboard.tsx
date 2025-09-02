@@ -261,7 +261,7 @@ export default function PredictionPoolDashboard() {
                     </span>
                   </div>
                 </div>
-                <p className="text-neutral-600 dark:text-neutral-400 text-lg mb-2">
+                <p className="text-neutral-600 dark:text-neutral-400 text-sm mb-2">
                   {poolData.description}
                 </p>
 

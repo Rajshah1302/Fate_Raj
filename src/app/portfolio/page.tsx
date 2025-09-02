@@ -38,8 +38,7 @@ import AppLoader from "@/components/Loader";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
 const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
-const REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
-
+const USER_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.USER_REGISTRY;
 const CHART_COLORS = [
   "#fff44f", // bright lemon yellow
   "#ffec1a", // vivid sunshine yellow
@@ -583,8 +582,8 @@ export default function PortfolioPage() {
       const tx = new Transaction();
 
       tx.moveCall({
-        target: `${PACKAGE_ID}::registry::get_user_pools`,
-        arguments: [tx.object(REGISTRY_ID), tx.pure.address(account.address)],
+        target: `${PACKAGE_ID}::user_registry::get_user_pools`,
+        arguments: [tx.object(USER_REGISTRY), tx.pure.address(account.address)],
       });
 
       const response = await client.devInspectTransactionBlock({
