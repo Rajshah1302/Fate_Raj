@@ -154,7 +154,7 @@ export default function CreateFatePoolForm() {
 
       const assetAddress =
         formData.pairId || "0x0000000000000000000000000000000000000000";
-      const FEE_NUMERATOR = 10000;
+      const FEE_NUMERATOR = 1000;
 
       const protocolFee = BigInt(
         Math.floor(Number(formData.protocolFee ?? 0) * FEE_NUMERATOR)
