@@ -22,6 +22,7 @@ import { useWallet } from "@suiet/wallet-kit";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
+import { useQueryClient } from "@tanstack/react-query";
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 export default function CreateFatePoolForm() {
@@ -30,6 +31,7 @@ export default function CreateFatePoolForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const queryClient = useQueryClient();
 
   const stepTitles = ["Pool", "Tokens", "Fees", "Review"];
   const totalSteps = 4;
@@ -131,7 +133,7 @@ export default function CreateFatePoolForm() {
     const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
     const NEXT_SUPRA_ORACLE_HOLDER =
       PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
-    const NEXT_GLOBAL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
+    const NEXT_PUBLIC_POOL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY;
     if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
       toast.error(
         "Missing environment variables: PACKAGE_ID or SUPRA_ORACLE_HOLDER"
@@ -142,9 +144,8 @@ export default function CreateFatePoolForm() {
 
     try {
       const poolName = formData.poolName?.trim() || "Default Pool";
-      const poolDescription =
-        formData.poolDescription?.trim() || "A prediction pool";
-      const pairId = Number(formData.pairId ?? 18);
+      const poolDescription = formData.poolDescription?.trim() || "";
+      const pairId = Number(formData.pairId) || 18;
       if (!Number.isFinite(pairId) || pairId < 0 || pairId > 0xffffffff) {
         toast.error("Invalid pair id. Provide a numeric pairId (u32).");
         setIsSubmitting(false);
@@ -152,12 +153,21 @@ export default function CreateFatePoolForm() {
       }
 
       const assetAddress =
-        formData.assetAddress || "0x0000000000000000000000000000000000000000";
+        formData.pairId || "0x0000000000000000000000000000000000000000";
+      const FEE_NUMERATOR = 10000;
 
-      const protocolFee = BigInt(Number(formData.protocolFee ?? 100));
-      const mintFee = BigInt(Number(formData.mintFee ?? 0));
-      const burnFee = BigInt(Number(formData.burnFee ?? 0));
-      const poolCreatorFee = BigInt(Number(formData.poolCreatorFee ?? 50));
+      const protocolFee = BigInt(
+        Math.floor(Number(formData.protocolFee ?? 0) * FEE_NUMERATOR)
+      );
+      const mintFee = BigInt(
+        Math.floor(Number(formData.mintFee ?? 0) * FEE_NUMERATOR)
+      );
+      const burnFee = BigInt(
+        Math.floor(Number(formData.burnFee ?? 0) * FEE_NUMERATOR)
+      );
+      const poolCreatorFee = BigInt(
+        Math.floor(Number(formData.poolCreatorFee ?? 0) * FEE_NUMERATOR)
+      );
 
       const poolCreator = formData.poolCreatorAddress || account.address;
 
@@ -173,7 +183,7 @@ export default function CreateFatePoolForm() {
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
-          tx.object(NEXT_GLOBAL_REGISTRY!),
+          tx.object(NEXT_PUBLIC_POOL_REGISTRY!),
           tx.pure.vector("u8", strToU8Vec(poolName)),
           tx.pure.vector("u8", strToU8Vec(poolDescription)),
           tx.pure.u32(pairId),
@@ -211,6 +221,7 @@ export default function CreateFatePoolForm() {
 
       toast.success("Prediction Pool created successfully!");
       router.push("/predictionPool");
+      queryClient.invalidateQueries({ queryKey: ["poolIds"] });
     } catch (err: any) {
       console.error("Transaction error:", err);
       toast.error(`Transaction failed: ${err?.message ?? String(err)}`);

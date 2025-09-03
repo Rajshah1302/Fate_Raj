@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
@@ -112,7 +111,7 @@ export default function PoolsMarquee({
               key={`${pool.id}-${index}`}
               role="listitem"
               onClick={() =>
-                (window.location.href = `/predictionPool/${encodeURIComponent(
+                (window.location.href = `/predictionPool/pool?id=${encodeURIComponent(
                   pool.id
                 )}`)
               }

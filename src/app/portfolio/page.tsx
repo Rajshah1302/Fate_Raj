@@ -37,16 +37,31 @@ import { useRouter } from "next/navigation";
 import AppLoader from "@/components/Loader";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
 
-const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID
-const REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.GLOBAL_REGISTRY;
-
+const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
+const USER_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.USER_REGISTRY;
 const CHART_COLORS = [
-  "#3b82f6",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#06b6d4",
+  "#fff44f", // bright lemon yellow
+  "#ffec1a", // vivid sunshine yellow
+  "#ffd60a", // rich golden yellow
+  "#ffca0a", // warm bright gold
+  "#ffb703", // sunflower yellow
+  "#f59e0b", // amber yellow
+];
+
+const BEAR_COLORS = [
+  "#e5e7eb", // gray-200
+  "#d1d5db", // gray-300
+  "#9ca3af", // gray-400
+  "#6b7280", // gray-500
+];
+
+const BULL_COLORS = [
+  "#4b5563", // gray-600
+  "#374151", // gray-700
+  "#1f2937", // gray-800
+  "#111827", // gray-900
+  "#0f172a", // slate-950
+  "#000000", // pure black
 ];
 
 const WEI_DIVISOR = 1e9;
@@ -93,7 +108,11 @@ interface PoolData {
   bullReturns: number;
   bearReturns: number;
   color: string;
+  bullColor: string;
+  bearColor: string;
   hasPositions: boolean;
+  hasBullPosition: boolean;
+  hasBearPosition: boolean;
   bullReserve: number;
   bearReserve: number;
   bullSupply: number;
@@ -112,7 +131,7 @@ const SummaryCard = ({
   icon: React.ComponentType<any>;
   trend?: "up" | "down" | "neutral";
 }) => (
-  <Card className="group relative overflow-hidden  border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-blue-300/50 dark:hover:border-blue-500/30">
+  <Card className="group relative overflow-hidden  border-black dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-yellow-300/50 dark:hover:border-yellow-500/30">
     {/* Subtle gradient overlay */}
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -169,32 +188,37 @@ const SummaryCard = ({
   </Card>
 );
 
-// Enhanced position card component
 const PositionCard = ({ pool }: { pool: PoolData }) => {
   const router = useRouter();
   return (
     <div
-      className="group relative overflow-hidden border border-neutral-200/60 dark:border-neutral-600/60 rounded-xl p-5 dark:bg-gradient-to-br dark:from-neutral-700/40 dark:to-neutral-800/40 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-blue-500/30"
+      className="group relative overflow-hidden border border-black dark:border-neutral-600/60 rounded-xl p-5 dark:bg-gradient-to-br dark:from-neutral-700/40 dark:to-neutral-800/40 backdrop-blur-sm cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-yellow-300/50 dark:hover:border-yellow-500/30"
       onClick={() => {
         router.push(`predictionPool/pool?id=${pool.id}`);
       }}
     >
       {/* Animated background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Color accent bar */}
       <div
         className="absolute left-0 top-0 w-1 h-full transition-all duration-300 group-hover:w-2"
-        style={{ backgroundColor: pool.color }}
+        style={{
+          backgroundColor:
+            pool.bullBalance > pool.bearBalance ? "#1f2937" : "#d1d5db",
+        }}
       />
 
       <div className="relative flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div
             className="w-3 h-3 rounded-full shadow-lg"
-            style={{ backgroundColor: pool.color }}
+            style={{
+              backgroundColor:
+                pool.bullBalance > pool.bearBalance ? "#1f2937" : "#d1d5db",
+            }}
           />
-          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
             {pool.name}
           </h3>
         </div>
@@ -213,7 +237,7 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
                 : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
             }`}
           >
-            {pool.totalPnL > 0.1 ? "+" : ""}
+            {pool.totalPnL > 0 ? "+" : ""}
             {pool.totalPnL.toLocaleString(undefined, {
               minimumFractionDigits: 0,
               maximumFractionDigits: 4,
@@ -235,11 +259,12 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
 
       {/* Position details */}
       <div className="relative flex justify-between text-xs">
+        {/* Bull side */}
         <div className="space-y-1 text-left">
-          <div className="text-neutral-600 dark:text-neutral-400">
+          <div className="font-medium text-black dark:text-gray-500">
             Bull Position
           </div>
-          <div className="font-medium text-green-600 dark:text-green-400">
+          <div className="font-semibold text-black dark:text-gray-500">
             {pool.bullBalance.toLocaleString(undefined, {
               minimumFractionDigits: 0,
               maximumFractionDigits: 2,
@@ -247,11 +272,13 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
             tokens
           </div>
         </div>
+
+        {/* Bear side */}
         <div className="space-y-1 text-right">
-          <div className="text-neutral-600 dark:text-neutral-400">
+          <div className="font-medium text-gray-400 dark:text-white">
             Bear Position
           </div>
-          <div className="font-medium text-red-600 dark:text-red-400">
+          <div className="font-semibold text-gray-400 dark:text-gray-50">
             {pool.bearBalance.toLocaleString(undefined, {
               minimumFractionDigits: 0,
               maximumFractionDigits: 2,
@@ -261,6 +288,160 @@ const PositionCard = ({ pool }: { pool: PoolData }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Chart component for bull/bear positions
+const PositionChart = ({
+  data,
+  title,
+  type,
+  showDistribution,
+  onToggleView,
+}: {
+  data: any[];
+  title: string;
+  type: "bull" | "bear";
+  showDistribution: boolean;
+  onToggleView: () => void;
+}) => {
+  const colors = type === "bull" ? BULL_COLORS : BEAR_COLORS;
+  const dataKey = type === "bull" ? "bullCurrentValue" : "bearCurrentValue";
+  const nameKey = "name";
+
+  return (
+    <Card className="border-black dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100 mb-2 flex items-center gap-2">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  type === "bull" ? "bg-gray-800" : "bg-gray-300"
+                }`}
+              />
+              {title}
+            </CardTitle>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Your {type} positions across {data.length} pool
+              {data.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleView}
+            className="border-neutral-300/60 dark:border-neutral-600/60 hover:bg-yellow-50 dark:hover:bg-yellow-950/30 transition-all duration-200"
+          >
+            {showDistribution ? (
+              <PieChartIcon className="h-4 w-4 mr-2" />
+            ) : (
+              <BarChart3 className="h-4 w-4 mr-2" />
+            )}
+            {showDistribution ? "Pie View" : "Bar View"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          {showDistribution ? (
+            <BarChart data={data}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e5e5e5"
+                strokeOpacity={0.3}
+              />
+              <XAxis
+                dataKey={nameKey}
+                stroke="#737373"
+                fontSize={12}
+                tickFormatter={(name) =>
+                  name.length > 10 ? `${name.substring(0, 10)}...` : name
+                }
+              />
+              <YAxis stroke="#737373" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e5e5e5",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  color: "#000",
+                }}
+                formatter={(value: number) => [
+                  `${value.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 4,
+                  })} SUI`,
+                  "Value",
+                ]}
+              />
+              <Bar dataKey={dataKey} radius={[6, 6, 0, 0]}>
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          ) : (
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={120}
+                paddingAngle={2}
+                dataKey={dataKey}
+                stroke="#000"
+                strokeWidth={2}
+                legendType="circle"
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => [
+                  `${value.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 4,
+                  })} SUI`,
+                  "Value",
+                ]}
+                contentStyle={{
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e5e5e5",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  stroke: "#000",
+                  color: "#000",
+                  strokeWidth: 2,
+                }}
+              />
+            </PieChart>
+          )}
+        </ResponsiveContainer>
+        <div className="flex justify-center gap-6 mt-4 flex-wrap">
+          {data.map((item, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded shadow-sm"
+                style={{ backgroundColor: colors[index % colors.length] }}
+              />
+              <span className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">
+                {item.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -344,7 +525,11 @@ const PoolDataLoader = ({
       bullReturns: bullMetrics.returns,
       bearReturns: bearMetrics.returns,
       color: CHART_COLORS[index % CHART_COLORS.length],
+      bullColor: BULL_COLORS[index % BULL_COLORS.length],
+      bearColor: BEAR_COLORS[index % BEAR_COLORS.length],
       hasPositions: userBullTokens > 0 || userBearTokens > 0,
+      hasBullPosition: userBullTokens > 0,
+      hasBearPosition: userBearTokens > 0,
       bullReserve,
       bearReserve,
       bullSupply,
@@ -376,7 +561,8 @@ const PoolDataLoader = ({
 export default function PortfolioPage() {
   const { account } = useWallet();
   const stickyRef = useRef<HTMLElement | null>(null);
-  const [showPoolDistribution, setShowPoolDistribution] = useState(false);
+  const [showBullDistribution, setShowBullDistribution] = useState(false);
+  const [showBearDistribution, setShowBearDistribution] = useState(false);
   const [userPoolIds, setUserPoolIds] = useState<string[]>([]);
   const [poolsData, setPoolsData] = useState<PoolData[]>([]);
   const [loadedPoolsCount, setLoadedPoolsCount] = useState(0);
@@ -396,8 +582,8 @@ export default function PortfolioPage() {
       const tx = new Transaction();
 
       tx.moveCall({
-        target: `${PACKAGE_ID}::registry::get_user_pools`,
-        arguments: [tx.object(REGISTRY_ID), tx.pure.address(account.address)],
+        target: `${PACKAGE_ID}::user_registry::get_user_pools`,
+        arguments: [tx.object(USER_REGISTRY), tx.pure.address(account.address)],
       });
 
       const response = await client.devInspectTransactionBlock({
@@ -477,11 +663,15 @@ export default function PortfolioPage() {
   // Calculate portfolio statistics
   const {
     activePoolsData,
+    bullPositionsData,
+    bearPositionsData,
     totalPortfolioValue,
     totalPnL,
     totalReturnPercentage,
   } = useMemo(() => {
     const activePoolsData = poolsData.filter((pool) => pool.hasPositions);
+    const bullPositionsData = poolsData.filter((pool) => pool.hasBullPosition);
+    const bearPositionsData = poolsData.filter((pool) => pool.hasBearPosition);
 
     const totalPortfolioValue = activePoolsData.reduce(
       (sum, pool) => sum + pool.totalValue,
@@ -500,6 +690,8 @@ export default function PortfolioPage() {
 
     return {
       activePoolsData,
+      bullPositionsData,
+      bearPositionsData,
       totalPortfolioValue,
       totalCostBasis,
       totalPnL,
@@ -514,10 +706,10 @@ export default function PortfolioPage() {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-neutral-100 dark:from-neutral-900 dark:via-blue-950/20 dark:to-neutral-900 flex items-center justify-center p-4">
-          <Card className="p-8 text-center max-w-md border-neutral-200/60 dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
+        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
+          <Card className="p-8 text-center max-w-md border-black dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
             <div className="mb-6">
-              <Wallet className="h-12 w-12 mx-auto text-blue-500 dark:text-blue-400 mb-4" />
+              <Wallet className="h-12 w-12 mx-auto text-yellow-500 dark:text-yellow-400 mb-4" />
               <CardTitle className="text-xl mb-2 text-neutral-900 dark:text-neutral-100">
                 Connect Your Wallet
               </CardTitle>
@@ -609,156 +801,51 @@ export default function PortfolioPage() {
             </div>
 
             {activePoolsData.length > 0 ? (
-              <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 ">
-                {/* Portfolio Distribution Chart */}
-                <Card className="xl:col-span-3 border-neutral-200/60 dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100 mb-2">
-                          Portfolio Distribution
-                        </CardTitle>
-                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                          Asset allocation across {activePoolsData.length} pool
-                          {activePoolsData.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setShowPoolDistribution(!showPoolDistribution)
-                        }
-                        className="border-neutral-300/60 dark:border-neutral-600/60 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-all duration-200"
-                      >
-                        {showPoolDistribution ? (
-                          <PieChartIcon className="h-4 w-4 mr-2" />
-                        ) : (
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                        )}
-                        {showPoolDistribution ? "Pie View" : "Bar View"}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={350}>
-                      {showPoolDistribution ? (
-                        <BarChart data={activePoolsData}>
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#e5e5e5"
-                            strokeOpacity={0.3}
-                          />
-                          <XAxis
-                            dataKey="name"
-                            stroke="#737373"
-                            fontSize={12}
-                            tickFormatter={(name) =>
-                              name.length > 10
-                                ? `${name.substring(0, 10)}...`
-                                : name
-                            }
-                          />
-                          <YAxis stroke="#737373" fontSize={12} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "rgba(255, 255, 255, 0.95)",
-                              border: "1px solid #e5e5e5",
-                              borderRadius: "8px",
-                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                              color: "#000",
-                            }}
-                            formatter={(value: number) => [
-                              `${value.toLocaleString(undefined, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 4,
-                              })} SUI`,
-                              "Value",
-                            ]}
-                          />
-                          <Bar dataKey="totalValue" radius={[6, 6, 0, 0]}>
-                            {activePoolsData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      ) : (
-                        <PieChart>
-                          <Pie
-                            data={activePoolsData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={70}
-                            outerRadius={140}
-                            paddingAngle={2}
-                            dataKey="totalValue"
-                          >
-                            {activePoolsData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: number) => [
-                              `${value.toLocaleString(undefined, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 4,
-                              })} SUI`,
-                              "Value",
-                            ]}
-                            contentStyle={{
-                              backgroundColor: "rgba(255, 255, 255, 0.95)",
-                              border: "1px solid #e5e5e5",
-                              borderRadius: "8px",
-                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                            }}
-                          />
-                        </PieChart>
-                      )}
-                    </ResponsiveContainer>
-                    <div className="flex justify-center gap-6 mt-6 flex-wrap">
-                      {activePoolsData.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
+              <div className="space-y-6">
+                {/* Bull and Bear Position Charts */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  {/* Bull Positions Chart */}
+                  <PositionChart
+                    data={bullPositionsData}
+                    title="Bull Positions"
+                    type="bull"
+                    showDistribution={showBullDistribution}
+                    onToggleView={() =>
+                      setShowBullDistribution(!showBullDistribution)
+                    }
+                  />
+                  {/* Positions List */}
+                  <Card className="border-black xl:col-span-1  dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
+                    <CardHeader>
+                      <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100 mb-2">
+                        Positions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto overfolw-x-hidden">
+                        {activePoolsData.map((pool, index) => (
                           <div
-                            className="w-3 h-3 rounded shadow-sm"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">
-                            {item.name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Active Positions */}
-                <Card className="border-neutral-200/60 xl:col-span-2  dark:border-neutral-700/60 dark:bg-gradient-to-br dark:from-neutral-800/50 dark:to-neutral-900/50 backdrop-blur-sm shadow-xl">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-neutral-900 dark:text-neutral-100 mb-2">
-                      Active Positions
-                    </CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                        {activePoolsData.length} position
-                        {activePoolsData.length !== 1 ? "s" : ""} active
-                      </p>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto overfolw-x-hidden pr-2">
-                      {activePoolsData.map((pool, index) => (
-                        <div
-                          key={pool.id}
-                          className="animate-in slide-in-from-bottom-4 duration-300"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                          <PositionCard pool={pool} />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                            key={pool.id}
+                            className="animate-in slide-in-from-bottom-4 duration-300"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                          >
+                            <PositionCard pool={pool} />
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  {/* Bear Positions Chart */}
+                  <PositionChart
+                    data={bearPositionsData}
+                    title="Bear Positions"
+                    type="bear"
+                    showDistribution={showBearDistribution}
+                    onToggleView={() =>
+                      setShowBearDistribution(!showBearDistribution)
+                    }
+                  />
+                </div>
               </div>
             ) : !isLoading ? (
               <Card className="border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-8 text-center">

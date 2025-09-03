@@ -59,7 +59,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             placeholder="0"
             step="0.01"
             min="0"
-            max="100"
+            max="10"
             value={formData.protocolFee}
             onChange={(e) => updateFormData({ protocolFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
@@ -95,7 +95,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             placeholder="0"
             step="0.01"
             min="0"
-            max="100"
+            max="10"
             value={formData.mintFee}
             onChange={(e) => updateFormData({ mintFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
@@ -130,7 +130,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             placeholder="0"
             step="0.01"
             min="0"
-            max="100"
+            max="10"
             value={formData.burnFee}
             onChange={(e) => updateFormData({ burnFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
@@ -166,7 +166,7 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
             placeholder="0"
             step="0.01"
             min="0"
-            max="100"
+            max="10"
             value={formData.poolCreatorFee}
             onChange={(e) => updateFormData({ poolCreatorFee: e.target.value })}
             className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${

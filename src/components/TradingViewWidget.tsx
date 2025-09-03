@@ -87,7 +87,7 @@ function TradingViewWidget({
           style={{ minHeight: `${contentHeight}px` }}
         >
           <div className="w-full h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="animate-spin rounded-full h-8 w-8 border border-black" />
           </div>
         </div>
       </CardContent>
