@@ -19,6 +19,7 @@ interface VortexProps {
   baseRadius?: number;
   rangeRadius?: number;
   backgroundColor?: string;
+  colorPalette?: "blue-purple" | "grey-yellow";
 }
 
 export const Vortex = (props: VortexProps) => {
@@ -35,13 +36,38 @@ export const Vortex = (props: VortexProps) => {
   const rangeSpeed = props.rangeSpeed || 1.5;
   const baseRadius = props.baseRadius || 1;
   const rangeRadius = props.rangeRadius || 2;
-  const baseHue = props.baseHue || 220;
-  const rangeHue = 100;
+
+  // Color palette configuration
+  const colorPalette = props.colorPalette || "blue-purple";
+  let baseHue = props.baseHue;
+  let rangeHue = 100;
+
+  if (!baseHue) {
+    if (colorPalette === "grey-yellow") {
+      baseHue = 0; // Will be handled differently for grey-yellow
+      rangeHue = 0;
+    } else {
+      baseHue = 220; // Default blue-purple
+    }
+  }
+
   const noiseSteps = 3;
   const xOff = 0.00125;
   const yOff = 0.00125;
   const zOff = 0.0005;
   const backgroundColor = props.backgroundColor || "#000000";
+
+  // Helper function to check if background is light
+  const isLightBackground = (bgColor: string): boolean => {
+    // Convert hex to RGB and calculate luminance
+    const hex = bgColor.replace("#", "");
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5;
+  };
+
   let tick = 0;
   const noise3D = createNoise3D();
   let particleProps = new Float32Array(particlePropsLength);
@@ -59,6 +85,38 @@ export const Vortex = (props: VortexProps) => {
   const lerp = (n1: number, n2: number, speed: number): number =>
     (1 - speed) * n1 + speed * n2;
 
+  const getParticleColor = (hue: number, life: number, ttl: number): string => {
+    const alpha = fadeInOut(life, ttl);
+
+    if (colorPalette === "grey-yellow") {
+      // Randomly choose between grey shades and yellow
+      const isYellow = Math.random() > 0.6; // 30% chance for yellow
+
+      if (isYellow) {
+        // Yellow particles
+        return `hsla(50, 100%, 60%, ${alpha})`;
+      } else {
+        // Grey particles - adjust for background
+        if (isLightBackground(backgroundColor)) {
+          // Dark greys on light background
+          const alpha = 0.8; // mostly opaque
+          return `rgba(255, 223, 0, ${alpha})`;
+        } else {
+          // Light greys on dark background
+          const lightness = 40 + Math.random() * 60; // Range from 40% to 100%
+          return `hsla(0, 0%, ${lightness}%, ${alpha})`;
+        }
+      }
+    } else {
+      // Original blue-purple palette - adjust saturation/lightness for light backgrounds
+      if (isLightBackground(backgroundColor)) {
+        return `hsla(${hue}, 80%, 40%, ${alpha})`; // Darker, less saturated for light bg
+      } else {
+        return `hsla(${hue}, 100%, 60%, ${alpha})`; // Original for dark bg
+      }
+    }
+  };
+
   const setup = () => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -75,7 +133,6 @@ export const Vortex = (props: VortexProps) => {
 
   const initParticles = () => {
     tick = 0;
-    // simplex = new SimplexNoise();
     particleProps = new Float32Array(particlePropsLength);
 
     for (let i = 0; i < particlePropsLength; i += particlePropCount) {
@@ -97,7 +154,13 @@ export const Vortex = (props: VortexProps) => {
     ttl = baseTTL + rand(rangeTTL);
     speed = baseSpeed + rand(rangeSpeed);
     radius = baseRadius + rand(rangeRadius);
-    hue = baseHue + rand(rangeHue);
+
+    if (colorPalette === "grey-yellow") {
+      // For grey-yellow palette, hue will be handled in getParticleColor
+      hue = 0;
+    } else {
+      hue = baseHue + rand(rangeHue);
+    }
 
     particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i);
   };
@@ -115,7 +178,7 @@ export const Vortex = (props: VortexProps) => {
     renderToScreen(canvas, ctx);
 
     animationFrameId.current = window.requestAnimationFrame(() =>
-      draw(canvas, ctx),
+      draw(canvas, ctx)
     );
   };
 
@@ -174,12 +237,12 @@ export const Vortex = (props: VortexProps) => {
     ttl: number,
     radius: number,
     hue: number,
-    ctx: CanvasRenderingContext2D,
+    ctx: CanvasRenderingContext2D
   ) => {
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineWidth = radius;
-    ctx.strokeStyle = `hsla(${hue},100%,60%,${fadeInOut(life, ttl)})`;
+    ctx.strokeStyle = getParticleColor(hue, life, ttl);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x2, y2);
@@ -194,7 +257,7 @@ export const Vortex = (props: VortexProps) => {
 
   const resize = (
     canvas: HTMLCanvasElement,
-    ctx?: CanvasRenderingContext2D,
+    ctx?: CanvasRenderingContext2D
   ) => {
     const { innerWidth, innerHeight } = window;
 
@@ -207,29 +270,43 @@ export const Vortex = (props: VortexProps) => {
 
   const renderGlow = (
     canvas: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D,
+    ctx: CanvasRenderingContext2D
   ) => {
+    // Use different blend modes based on background
+    const blendMode = isLightBackground(backgroundColor)
+      ? "multiply"
+      : "lighter";
+
     ctx.save();
     ctx.filter = "blur(8px) brightness(200%)";
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = blendMode;
     ctx.drawImage(canvas, 0, 0);
     ctx.restore();
 
     ctx.save();
     ctx.filter = "blur(4px) brightness(200%)";
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = blendMode;
     ctx.drawImage(canvas, 0, 0);
     ctx.restore();
   };
 
   const renderToScreen = (
     canvas: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D,
+    ctx: CanvasRenderingContext2D
   ) => {
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.drawImage(canvas, 0, 0);
-    ctx.restore();
+    if (isLightBackground(backgroundColor)) {
+      // Use overlay for light backgrounds to maintain vibrant colors
+      ctx.save();
+      ctx.globalCompositeOperation = "overlay";
+      ctx.drawImage(canvas, 0, 0);
+      ctx.restore();
+    } else {
+      // Original blend mode for dark backgrounds
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.drawImage(canvas, 0, 0);
+      ctx.restore();
+    }
   };
 
   const handleResize = () => {
@@ -250,7 +327,7 @@ export const Vortex = (props: VortexProps) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, []);
+  }, [backgroundColor, colorPalette]); // Add dependencies to re-initialize when these change
 
   return (
     <div className={cn("relative h-full w-full ", props.containerClassName)}>
