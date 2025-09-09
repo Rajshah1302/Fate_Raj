@@ -20,7 +20,7 @@ const features = [
     ),
     title: "Continuous Operation",
     description:
-      "The future doesn’t pause. Our markets operate endlessly, adapting to every pulse of change.",
+      "The future doesn’t pause. Fate's Markets operate endlessly, adapting to every pulse of change.",
   },
   {
     icon: (

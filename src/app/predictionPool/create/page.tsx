@@ -1,5 +1,6 @@
 "use client";
 import CreateFatePoolForm from "@/components/Forms/CreateFatePool";
+import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import StickyCursor from "@/components/StickyCursor";
 import { useRef } from "react";
@@ -13,7 +14,7 @@ export default function CreateFatePoolPage() {
       <div className="dark:bg-black bg-white">
         <CreateFatePoolForm />
       </div>
-      <div className="h-[30vh] dark:bg-black bg-white"></div>
+      <Footer/>
     </>
   );
 }

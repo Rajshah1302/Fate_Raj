@@ -17,7 +17,6 @@ import {
   TrendingDown,
   Filter,
   X,
-  Wallet,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -36,11 +35,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ASSET_CONFIG } from "@/config/assets";
-import { useWallet } from "@suiet/wallet-kit";
 import { bcs } from "@mysten/sui/bcs";
 import toast from "react-hot-toast";
 import { PROTOCOL_ADDRESSES_TESTNET } from "@/config/protocol";
-import { Card, CardTitle } from "@/components/ui/card";
 
 interface EnhancedPool extends Pool {
   total_fees: number;
@@ -65,8 +62,6 @@ const ExploreFatePools = () => {
   const stickyRef = useRef<HTMLElement | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const { account } = useWallet();
-  const accountAddress = account?.address || "";
   const PACKAGE_ID = PROTOCOL_ADDRESSES_TESTNET.PACKAGE_ID;
   const POOL_REGISTRY_ID = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY;
   const [filters, setFilters] = useState<FilterState>({
@@ -102,7 +97,6 @@ const ExploreFatePools = () => {
     return "0x" + arr.map((b) => b.toString(16).padStart(2, "0")).join("");
   };
 
-  // Query function to fetch pool IDs from registry
   const fetchPoolsFromRegistry = async (): Promise<string[]> => {
     if (!PACKAGE_ID || !POOL_REGISTRY_ID) {
       throw new Error("Missing PACKAGE_ID or POOL_REGISTRY_ID");
@@ -142,7 +136,6 @@ const ExploreFatePools = () => {
 
       const allPoolIds: string[] = [];
 
-      // Fetch pools from each page
       for (let pageNumber = 0; pageNumber < totalPages; pageNumber++) {
         try {
           const tx = new Transaction();
@@ -153,7 +146,7 @@ const ExploreFatePools = () => {
 
           const pageResponse = await client.devInspectTransactionBlock({
             transactionBlock: tx,
-            sender: accountAddress,
+            sender: "0x9bca5a227e7e4dfa48927ec6583b19aac55c29f00a39330aec60356a101886ba",
           });
 
           const pageResult = pageResponse.results?.[0]?.returnValues?.[0];
@@ -285,11 +278,11 @@ const ExploreFatePools = () => {
     isLoading: poolIdsLoading,
     error: poolIdsError,
   } = useQuery({
-    queryKey: ["poolIds", PACKAGE_ID, POOL_REGISTRY_ID, accountAddress],
+    queryKey: ["poolIds", PACKAGE_ID, POOL_REGISTRY_ID, '0x9bca5a227e7e4dfa48927ec6583b19aac55c29f00a39330aec60356a101886ba'],
     queryFn: fetchPoolsFromRegistry,
-    enabled: !!(PACKAGE_ID && POOL_REGISTRY_ID && accountAddress),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    enabled: !!(PACKAGE_ID && POOL_REGISTRY_ID),
+    staleTime: 5 * 60 * 1000, 
+    gcTime: 10 * 60 * 1000, 
     retry: 2,
     refetchOnWindowFocus: false,
   });
@@ -393,28 +386,6 @@ const ExploreFatePools = () => {
       maxError: null,
     });
   };
-
-  if (!account?.address) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
-          <Card className="p-8 text-center max-w-md border-neutral-200/60 dark:border-neutral-700/60 shadow-xl bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
-            <div className="mb-6">
-              <Wallet className="h-12 w-12 mx-auto text-blue-500 dark:text-blue-400 mb-4" />
-              <CardTitle className="text-xl mb-2 text-neutral-900 dark:text-neutral-100">
-                Connect Your Wallet
-              </CardTitle>
-              <p className="text-neutral-600 dark:text-neutral-400">
-                Connect your wallet to view and explore prediction pools.
-              </p>
-            </div>
-          </Card>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
