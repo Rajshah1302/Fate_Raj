@@ -87,7 +87,7 @@ export default function CreateFatePoolForm() {
           newErrors.bearCoinSymbol = "Bear coin symbol is required";
         }
         break;
-      case 4:
+      case 3:
         if (!formData.poolCreatorFee.trim()) {
           newErrors.poolCreatorFee = "Creator stake fee is required";
         }
@@ -99,6 +99,21 @@ export default function CreateFatePoolForm() {
         }
         if (!formData.burnFee.trim()) {
           newErrors.burnFee = "Burn fee is required";
+        }
+        if (!formData.initialSuiAmount) {
+          newErrors.initialSuiAmount = "Initial SUI amount is required";
+        }
+        if (
+          formData.initialSuiAmount &&
+          isNaN(Number(formData.initialSuiAmount))
+        ) {
+          newErrors.initialSuiAmount = "Initial SUI amount must be a number";
+        } else if (
+          formData.initialSuiAmount &&
+          Number(formData.initialSuiAmount) <= 0
+        ) {
+          newErrors.initialSuiAmount =
+            "Initial SUI amount must be greater than zero";
         }
         break;
       default:
@@ -171,6 +186,16 @@ export default function CreateFatePoolForm() {
 
       const poolCreator = formData.poolCreatorAddress || account.address;
 
+      const initialSuiAmount = BigInt(
+        Math.floor(Number(formData.initialSuiAmount ?? 0) * 1_000_000_000)
+      );
+
+      if (initialSuiAmount <= BigInt(0)) {
+        toast.error("Initial SUI amount must be greater than 0");
+        setIsSubmitting(false);
+        return;
+      }
+
       const bullTokenName = `${poolName} Bull`;
       const bullTokenSymbol = formData.bullCoinSymbol ?? "BULL";
       const bearTokenName = `${poolName} Bear`;
@@ -179,6 +204,8 @@ export default function CreateFatePoolForm() {
       const strToU8Vec = (s: string) => Array.from(Buffer.from(s, "utf8"));
 
       const tx = new Transaction();
+
+      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(initialSuiAmount)]);
 
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
@@ -198,6 +225,7 @@ export default function CreateFatePoolForm() {
           tx.pure.vector("u8", strToU8Vec(bearTokenName)),
           tx.pure.vector("u8", strToU8Vec(bearTokenSymbol)),
           tx.object(NEXT_SUPRA_ORACLE_HOLDER),
+          coin,
         ],
       });
 

@@ -12,4 +12,5 @@ export type FormData = {
   burnFee: string;
   poolCreatorFee: string;
   poolCreatorAddress?: string;
+  initialSuiAmount?: string;
 };
