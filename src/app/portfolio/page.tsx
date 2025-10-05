@@ -119,7 +119,6 @@ interface PoolData {
   bearSupply: number;
 }
 
-// Enhanced summary card component with animations
 const SummaryCard = ({
   title,
   value,
@@ -579,37 +578,115 @@ export default function PortfolioPage() {
       const client = new SuiClient({
         url: "https://fullnode.testnet.sui.io:443",
       });
-      const tx = new Transaction();
 
-      tx.moveCall({
-        target: `${PACKAGE_ID}::user_registry::get_user_pools`,
-        arguments: [tx.object(USER_REGISTRY), tx.pure.address(account.address)],
+      // First, check if user exists
+      const checkUserTx = new Transaction();
+      checkUserTx.moveCall({
+        target: `${PACKAGE_ID}::user_registry::user_exists`,
+        arguments: [
+          checkUserTx.object(USER_REGISTRY),
+          checkUserTx.pure.address(account.address),
+        ],
       });
 
-      const response = await client.devInspectTransactionBlock({
-        transactionBlock: tx,
+      const userExistsResponse = await client.devInspectTransactionBlock({
+        transactionBlock: checkUserTx,
         sender: account.address,
       });
 
-      console.log("Registry response:", response);
+      console.log("User exists response:", userExistsResponse);
 
-      if (response.error) {
-        console.error("Registry call error:", response.error);
-        setRegistryError(response.error);
-        return [];
+      // Check user stats
+      const statsTx = new Transaction();
+      statsTx.moveCall({
+        target: `${PACKAGE_ID}::user_registry::get_user_stats`,
+        arguments: [
+          statsTx.object(USER_REGISTRY),
+          statsTx.pure.address(account.address),
+        ],
+      });
+
+      const statsResponse = await client.devInspectTransactionBlock({
+        transactionBlock: statsTx,
+        sender: account.address,
+      });
+
+      console.log("User stats response:", statsResponse);
+
+      if (statsResponse.results?.[0]?.returnValues) {
+        const totalPoolsBytes = Uint8Array.from(
+          statsResponse.results[0].returnValues[0][0]
+        );
+        const totalPagesBytes = Uint8Array.from(
+          statsResponse.results[0].returnValues[1][0]
+        );
+
+        const totalPools = bcs.u64().parse(totalPoolsBytes);
+        const totalPages = bcs.u32().parse(totalPagesBytes);
+
+        console.log(`User has ${totalPools} pools across ${totalPages} pages`);
       }
 
-      const returnValues = response.results?.[0]?.returnValues?.[0];
-      if (!returnValues || !Array.isArray(returnValues)) {
-        console.log("No return values or invalid format");
-        return [];
+      let allPoolIds: string[] = [];
+      let currentPage = 0;
+      let hasNextPage = true;
+
+      while (hasNextPage) {
+        const tx = new Transaction();
+
+        tx.moveCall({
+          target: `${PACKAGE_ID}::user_registry::get_user_pools_paginated`,
+          arguments: [
+            tx.object(USER_REGISTRY),
+            tx.pure.address(account.address),
+            tx.pure.u32(currentPage),
+          ],
+        });
+
+        const response = await client.devInspectTransactionBlock({
+          transactionBlock: tx,
+          sender: account.address,
+        });
+
+        console.log(`Registry response page ${currentPage}:`, response);
+
+        if (response.error) {
+          console.error("Registry call error:", response.error);
+          setRegistryError(response.error);
+          return allPoolIds;
+        }
+
+        const returnValues = response.results?.[0]?.returnValues;
+        if (!returnValues || returnValues.length < 4) {
+          console.log("No return values or invalid format");
+          break;
+        }
+
+        const poolsBytes = Uint8Array.from(returnValues[0][0]);
+        const hasNextBytes = Uint8Array.from(returnValues[1][0]);
+        const totalPagesBytes = Uint8Array.from(returnValues[2][0]);
+        const totalPoolsBytes = Uint8Array.from(returnValues[3][0]);
+
+        const pagePoolIds = bcs.vector(bcs.Address).parse(poolsBytes);
+        hasNextPage = bcs.bool().parse(hasNextBytes);
+        const totalPages = bcs.u32().parse(totalPagesBytes);
+        const totalPools = bcs.u64().parse(totalPoolsBytes);
+
+        console.log(
+          `Page ${currentPage}: ${pagePoolIds.length} pools, hasNext: ${hasNextPage}, totalPages: ${totalPages}, totalPools: ${totalPools}`
+        );
+
+        allPoolIds = [...allPoolIds, ...pagePoolIds];
+        currentPage++;
+
+        if (currentPage >= totalPages || !hasNextPage) {
+          break;
+        }
       }
 
-      const byteArray = Uint8Array.from(returnValues[0]);
-      const poolIds = bcs.vector(bcs.Address).parse(byteArray);
-      console.log("Fetched pool IDs:", poolIds);
+      console.log("Total fetched pool IDs:", allPoolIds);
       setRegistryError("");
-      return poolIds;
+      return allPoolIds;
     } catch (err: any) {
       console.error("Error fetching pools from registry:", err);
       setRegistryError(err?.message || "Failed to fetch pools");
