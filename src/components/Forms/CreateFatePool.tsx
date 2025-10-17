@@ -87,7 +87,7 @@ export default function CreateFatePoolForm() {
           newErrors.bearCoinSymbol = "Bear coin symbol is required";
         }
         break;
-      case 4:
+      case 3:
         if (!formData.poolCreatorFee.trim()) {
           newErrors.poolCreatorFee = "Creator stake fee is required";
         }
@@ -99,6 +99,21 @@ export default function CreateFatePoolForm() {
         }
         if (!formData.burnFee.trim()) {
           newErrors.burnFee = "Burn fee is required";
+        }
+        if (!formData.initialSuiAmount) {
+          newErrors.initialSuiAmount = "Initial SUI amount is required";
+        }
+        if (
+          formData.initialSuiAmount &&
+          isNaN(Number(formData.initialSuiAmount))
+        ) {
+          newErrors.initialSuiAmount = "Initial SUI amount must be a number";
+        } else if (
+          formData.initialSuiAmount &&
+          Number(formData.initialSuiAmount) <= 0
+        ) {
+          newErrors.initialSuiAmount =
+            "Initial SUI amount must be greater than zero";
         }
         break;
       default:
@@ -134,6 +149,7 @@ export default function CreateFatePoolForm() {
     const NEXT_SUPRA_ORACLE_HOLDER =
       PROTOCOL_ADDRESSES_TESTNET.SUPRA_ORACLE_HOLDER;
     const NEXT_PUBLIC_POOL_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.POOL_REGISTRY;
+    const NEXT_PUBLIC_USER_REGISTRY = PROTOCOL_ADDRESSES_TESTNET.USER_REGISTRY;
     if (!PACKAGE_ID || !NEXT_SUPRA_ORACLE_HOLDER) {
       toast.error(
         "Missing environment variables: PACKAGE_ID or SUPRA_ORACLE_HOLDER"
@@ -171,6 +187,16 @@ export default function CreateFatePoolForm() {
 
       const poolCreator = formData.poolCreatorAddress || account.address;
 
+      const initialSuiAmount = BigInt(
+        Math.floor(Number(formData.initialSuiAmount ?? 0) * 1_000_000_000)
+      );
+
+      if (initialSuiAmount <= BigInt(0)) {
+        toast.error("Initial SUI amount must be greater than 0");
+        setIsSubmitting(false);
+        return;
+      }
+
       const bullTokenName = `${poolName} Bull`;
       const bullTokenSymbol = formData.bullCoinSymbol ?? "BULL";
       const bearTokenName = `${poolName} Bear`;
@@ -180,10 +206,13 @@ export default function CreateFatePoolForm() {
 
       const tx = new Transaction();
 
+      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(initialSuiAmount)]);
+
       tx.moveCall({
         target: `${PACKAGE_ID}::prediction_pool::create_pool`,
         arguments: [
           tx.object(NEXT_PUBLIC_POOL_REGISTRY!),
+          tx.object(NEXT_PUBLIC_USER_REGISTRY!),
           tx.pure.vector("u8", strToU8Vec(poolName)),
           tx.pure.vector("u8", strToU8Vec(poolDescription)),
           tx.pure.u32(pairId),
@@ -198,6 +227,7 @@ export default function CreateFatePoolForm() {
           tx.pure.vector("u8", strToU8Vec(bearTokenName)),
           tx.pure.vector("u8", strToU8Vec(bearTokenSymbol)),
           tx.object(NEXT_SUPRA_ORACLE_HOLDER),
+          coin,
         ],
       });
 

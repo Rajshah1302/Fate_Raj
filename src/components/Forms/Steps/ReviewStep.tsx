@@ -147,6 +147,16 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                 </span>
               </div>
             </div>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-600 dark:text-neutral-400">
+                  Intial SUI Amount:
+                </span>
+                <span className="font-medium text-black dark:text-white break-all">
+                  {formData.initialSuiAmount || "Invalid"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         <Button

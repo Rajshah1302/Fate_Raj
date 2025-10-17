@@ -1,16 +1,9 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { InfoIcon, Percent } from "lucide-react";
+import { Coins } from "lucide-react";
 import type { FormData } from "@/types/FormData";
+import { InputField } from "./InputField";
 
 interface FeeConfigurationStepProps {
   formData: FormData;
@@ -30,187 +23,68 @@ const FeeConfigurationStep: React.FC<FeeConfigurationStepProps> = ({
           Fee Configuration
         </h2>
         <p className="text-neutral-600 dark:text-neutral-400">
-          Configure fee structure for your pool
+          Configure fee structure and initial liquidity for your pool
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Protocol Fee *
-            </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                  <p className="w-64 text-sm">
-                    Percentage of fees allocated to the Protocol
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Input
-            type="number"
-            placeholder="0"
-            step="0.01"
-            min="0"
-            max="10"
-            value={formData.protocolFee}
-            onChange={(e) => updateFormData({ protocolFee: e.target.value })}
-            className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
-              errors.creatorUnstakeFee ? "border-red-500" : ""
-            }`}
-          />
-          {errors.creatorUnstakeFee && (
-            <p className="text-red-500 text-sm">{errors.creatorUnstakeFee}</p>
-          )}
-        </div>
+        <InputField
+          label="Protocol Fee *"
+          tooltip="Percentage of fees allocated to the Protocol"
+          value={formData.protocolFee}
+          onChange={(value) => updateFormData({ protocolFee: value })}
+          error={errors.protocolFee}
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Mint Fee *
-            </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                  <p className="w-64 text-sm">
-                    Percentage of fees charged and transfered to opposite side when minting new tokens.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Input
-            type="number"
-            placeholder="0"
-            step="0.01"
-            min="0"
-            max="10"
-            value={formData.mintFee}
-            onChange={(e) => updateFormData({ mintFee: e.target.value })}
-            className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
-              errors.stakeFee ? "border-red-500" : ""
-            }`}
-          />
-          {errors.stakeFee && (
-            <p className="text-red-500 text-sm">{errors.stakeFee}</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Burn Fee *
-            </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                  <p className="w-64 text-sm">
-                    Percentage of fees charged and transfered to opposite side when buring tokens.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Input
-            type="number"
-            placeholder="0"
-            step="0.01"
-            min="0"
-            max="10"
-            value={formData.burnFee}
-            onChange={(e) => updateFormData({ burnFee: e.target.value })}
-            className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
-              errors.stakeFee ? "border-red-500" : ""
-            }`}
-          />
-          {errors.stakeFee && (
-            <p className="text-red-500 text-sm">{errors.stakeFee}</p>
-          )}
-        </div>
+        <InputField
+          label="Mint Fee *"
+          tooltip="Percentage of fees charged and transferred to opposite side when minting new tokens."
+          value={formData.mintFee}
+          onChange={(value) => updateFormData({ mintFee: value })}
+          error={errors.mintFee}
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Pool Creator Fee *
-            </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                  <p className="w-64 text-sm">
-                    Percentage of fees allocated to the creator
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Input
-            type="number"
-            placeholder="0"
-            step="0.01"
-            min="0"
-            max="10"
-            value={formData.poolCreatorFee}
-            onChange={(e) => updateFormData({ poolCreatorFee: e.target.value })}
-            className={`transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white ${
-              errors.creatorStakeFee ? "border-red-500" : ""
-            }`}
-          />
-          {errors.creatorStakeFee && (
-            <p className="text-red-500 text-sm">{errors.creatorStakeFee}</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            <Label className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-              Fee Recipient Address
-            </Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-neutral-600/70 dark:text-neutral-400/70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400">
-                  <p className="w-64 text-sm">
-                    The address that will receive the creator&apos;s portion of
-                    vault fees. Leave empty to use your connected wallet
-                    address.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Input
-            type="text"
-            placeholder="0x... (optional - will use your wallet address if empty)"
-            value={formData.poolCreatorAddress}
-            onChange={(e) =>
-              updateFormData({ poolCreatorAddress: e.target.value })
-            }
-            className="transition-all focus:ring-2 focus:ring-black dark:focus:ring-white border-neutral-200 dark:border-neutral-700 text-black dark:text-white"
-          />
-          {errors.creatorStakeFee && (
-            <p className="text-red-500 text-sm">{errors.creatorStakeFee}</p>
-          )}
-        </div>
+        <InputField
+          label="Burn Fee *"
+          tooltip="Percentage of fees charged and transferred to opposite side when burning tokens."
+          value={formData.burnFee}
+          onChange={(value) => updateFormData({ burnFee: value })}
+          error={errors.burnFee}
+        />
+
+        <InputField
+          label="Pool Creator Fee *"
+          tooltip="Percentage of fees allocated to the creator"
+          value={formData.poolCreatorFee}
+          onChange={(value) => updateFormData({ poolCreatorFee: value })}
+          error={errors.poolCreatorFee}
+        />
+
+        <InputField
+          label="Fee Recipient Address"
+          tooltip="The address that will receive the creator's portion of vault fees. Leave empty to use your connected wallet address."
+          value={formData.poolCreatorAddress!}
+          onChange={(value) => updateFormData({ poolCreatorAddress: value })}
+          error={errors.poolCreatorAddress}
+          type="text"
+          placeholder="0x... (optional - will use your wallet address if empty)"
+          step=""
+          min=""
+          max=""
+        />
+
+        <InputField
+          label="Initial SUI Amount *"
+          tooltip="Amount of SUI to provide as initial liquidity. Will be split equally between bull and bear tokens."
+          value={formData.initialSuiAmount!}
+          onChange={(value) => updateFormData({ initialSuiAmount: value })}
+          error={errors.initialSuiAmount}
+          icon={
+            <Coins className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+          }
+          placeholder="Enter amount in SUI"
+          max="1000000"
+        />
       </div>
     </div>
   );
